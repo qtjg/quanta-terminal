@@ -1,6 +1,6 @@
 {
   "name": "quanta-terminal",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "QUANTA — AI-native Linux terminal in the browser: 85 real commands, multi-provider AI routing (OmniRoute), security toolkit, persistent VFS.",
   "author": "MAYANK (qtjg)",
   "license": "MIT",

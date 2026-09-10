@@ -264,7 +264,7 @@ export const SYS_COMMANDS: CmdDef[] = [
       const info = [
         `${ctx.user}@${ctx.host}`,
         "─────────────────────",
-        `OS:      Quanta OS 0.5.0 (web)`,
+        `OS:      Quanta OS 0.6.0 (web)`,
         `Kernel:  quanta-vfs 1.0`,
         `Shell:   quanta-sh 0.5`,
         `Theme:   ${ctx.theme}`,
