@@ -9,7 +9,7 @@
 [![Next.js](https://img.shields.io/badge/Next.js-App_Router-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.x-f472b6?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh)
-[![Tests](https://img.shields.io/badge/tests-277%2F277_passing-22c55e?style=for-the-badge&logo=checkmarx&logoColor=white)](#-testing)
+[![Tests](https://img.shields.io/badge/tests-369%2F369_passing-22c55e?style=for-the-badge&logo=checkmarx&logoColor=white)](#-testing)
 [![CI](https://img.shields.io/badge/CI-lint_%26_typecheck-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/qtjg/quanta-terminal/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-f59e0b?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-8b5cf6?style=for-the-badge)](#-contributing)
@@ -92,7 +92,7 @@ bun run dev
 Open **`http://localhost:3000`** and type:
 
 ```text
-help                → the full 85-command index
+help                → the full 117-command index
 neofetch            → system summary card
 ai explain pipes    → AI explains unix pipes
 omniroute on        → enable automatic model routing
@@ -308,7 +308,7 @@ flowchart TB
         CB["Cerebras"]
         WT["wttr.in"]
     end
-    T -->|"pipes · VFS · 85 cmds"| LS[("localStorage<br/>fs · theme · history")]
+    T -->|"pipes · VFS · 117 cmds"| LS[("localStorage<br/>fs · theme · history")]
     T --> F --> WT
     T --> C --> OR & GQ & GM & CB
     T --> M
@@ -338,7 +338,7 @@ bun scripts/test-quanta.ts
 ```
 
 ```text
-✓ 277 assertions across 85 commands — ALL GREEN
+✓ 369 assertions across 117 commands — ALL GREEN
   ├─ core / fs / text / sys / fun      (engine + VFS persistence)
   ├─ ai / omniroute                    (live model round-trips, routing telemetry)
   ├─ sec / net                         (real DNS, RDAP, real fetches)
