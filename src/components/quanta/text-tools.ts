@@ -538,3 +538,17 @@ export function wordFreq(text: string, stop = false): Array<[string, number]> {
   }
   return [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
 }
+
+/* ---------- v0.6: text alignment ---------- */
+
+export function alignLine(text: string, width: number, mode: "left" | "right" | "center"): string {
+  const w = Math.max(1, Math.min(width, 200));
+  if (text.length >= w) return text;
+  const padN = w - text.length;
+  if (mode === "right") return " ".repeat(padN) + text;
+  if (mode === "center") {
+    const l = Math.floor(padN / 2);
+    return " ".repeat(l) + text + " ".repeat(padN - l);
+  }
+  return text + " ".repeat(padN);
+}

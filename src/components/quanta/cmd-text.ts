@@ -1,12 +1,12 @@
 /* QUANTA text-processing commands: grep regex case ascii url diff base64
    hash uuid rand calc units */
 
-import { CmdCtx, CmdDef, err, absPath, contentLines, hasStdin } from "./core";
+import { CmdCtx, CmdDef, err, absPath, contentLines, hasStdin, stdinLines } from "./core";
 import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -287,6 +287,24 @@ export const TEXT_COMMANDS: CmdDef[] = [
         out.push(`  ${String(c).padStart(width)}  ${padCell(w, 14)} ${bar}`);
       }
       return out;
+    },
+  },
+  {
+    name: "pad", cat: "text", desc: "align text left/right/center to width", usage: 'pad <l|r|c> <width> <text>  ·  … | pad c 40',
+    run: (ctx) => {
+      const MODES: Record<string, "left" | "right" | "center"> = { l: "left", r: "right", c: "center", left: "left", right: "right", center: "center" };
+      const mode = MODES[ctx.args[0] ?? ""];
+      const width = parseInt(ctx.args[1] ?? "", 10);
+      if (!mode || !width) return err("usage: pad <l|r|c> <width> <text>  ·  … | pad c 40");
+      let lines: string[];
+      if (hasStdin(ctx)) {
+        lines = stdinLines(ctx);
+      } else {
+        const text = ctx.args.slice(2).join(" ");
+        if (!text) return err("usage: pad <l|r|c> <width> <text>");
+        lines = [text];
+      }
+      return lines.map((l) => alignLine(l, width, mode));
     },
   },
   {
