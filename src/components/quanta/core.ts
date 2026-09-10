@@ -52,7 +52,7 @@ export interface CmdCtx {
 
 export interface CmdDef {
   name: string;
-  cat: "core" | "fs" | "text" | "sys" | "net" | "fun" | "ai" | "sec";
+  cat: "core" | "fs" | "text" | "sys" | "net" | "fun" | "ai" | "sec" | "dev";
   desc: string;
   usage?: string;
   run: (ctx: CmdCtx) => string[] | Promise<string[]>;

@@ -8,6 +8,7 @@ import { TEXT_COMMANDS } from "./cmd-text";
 import { SYS_COMMANDS } from "./cmd-sys";
 import { FUN_COMMANDS } from "./cmd-fun";
 import { SEC_COMMANDS } from "./cmd-sec";
+import { DEV_COMMANDS } from "./cmd-dev";
 
 export const ALL_COMMANDS: CmdDef[] = [
   ...CORE_COMMANDS,
@@ -16,6 +17,7 @@ export const ALL_COMMANDS: CmdDef[] = [
   ...SYS_COMMANDS,
   ...FUN_COMMANDS,
   ...SEC_COMMANDS,
+  ...DEV_COMMANDS,
 ];
 
 export const CMD_MAP: Map<string, CmdDef> = new Map(ALL_COMMANDS.map((c) => [c.name, c]));
@@ -38,6 +40,7 @@ export function helpCard(): string[] {
     ["net", "network (real fetch)"],
     ["ai", "AI engine"],
     ["sec", "security toolkit (hacker mode)"],
+    ["dev", "developer tools (encode, hash, convert)"],
     ["fun", "fun & tools"],
   ];
   const out = [
