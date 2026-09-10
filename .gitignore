@@ -76,3 +76,5 @@ server.log
 /scripts/**/*.webp
 /scripts/reel_src/
 /prompts/
+# separate project workspace (own git repo, not part of quanta-terminal)
+/telegram-bot/
