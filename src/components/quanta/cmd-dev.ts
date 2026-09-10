@@ -74,4 +74,62 @@ export const DEV_COMMANDS: CmdDef[] = [
       return [`iso        ${d.toISOString()}`, `epoch ms   ${d.getTime()}`, `epoch s    ${Math.floor(d.getTime() / 1000)}`];
     },
   },
+  {
+    name: "color", cat: "dev", desc: "hex ↔ rgb ↔ hsl + WCAG contrast", usage: "color <#hex | rgb r g b | hsl h s l>",
+    run: (ctx) => {
+      let r = -1, g = -1, b = -1;
+      const sub = (ctx.args[0] ?? "").toLowerCase();
+      if (sub === "rgb" && ctx.args.length >= 4) {
+        [r, g, b] = ctx.args.slice(1, 4).map((v) => parseInt(v, 10));
+      } else if (sub === "hsl" && ctx.args.length >= 4) {
+        const h = parseFloat(ctx.args[1]) / 360, s = parseFloat(ctx.args[2]) / 100, l = parseFloat(ctx.args[3]) / 100;
+        if ([h, s, l].some((v) => Number.isNaN(v))) return err("color: usage: color hsl <h 0-360> <s 0-100> <l 0-100>");
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+        const hue = (t: number): number => {
+          if (t < 0) t += 1; if (t > 1) t -= 1;
+          if (t < 1 / 6) return p + (q - p) * 6 * t;
+          if (t < 1 / 2) return q;
+          if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+          return p;
+        };
+        r = Math.round(hue(h + 1 / 3) * 255); g = Math.round(hue(h) * 255); b = Math.round(hue(h - 1 / 3) * 255);
+      } else {
+        const hex = (ctx.args[0] ?? "").replace(/^#/, "");
+        const m = hex.match(/^(?:([0-9a-f])([0-9a-f])([0-9a-f])|([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2}))$/i);
+        if (!m) return err("color: usage: color <#hex | rgb r g b | hsl h s l>");
+        if (m[1]) {
+          r = parseInt(m[1] + m[1], 16); g = parseInt(m[2] + m[2], 16); b = parseInt(m[3] + m[3], 16);
+        } else {
+          r = parseInt(m[4], 16); g = parseInt(m[5], 16); b = parseInt(m[6], 16);
+        }
+      }
+      if ([r, g, b].some((v) => Number.isNaN(v) || v < 0 || v > 255)) {
+        return err("color: channels must be within range (rgb 0-255, h 0-360, s/l 0-100)");
+      }
+      const hexOut = "#" + [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+      const rn = r / 255, gn = g / 255, bn = b / 255;
+      const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn), l = (max + min) / 2;
+      const d2 = max - min;
+      const s = d2 === 0 ? 0 : d2 / (1 - Math.abs(2 * l - 1));
+      let h = 0;
+      if (d2 !== 0) {
+        if (max === rn) h = ((gn - bn) / d2) % 6;
+        else if (max === gn) h = (bn - rn) / d2 + 2;
+        else h = (rn - gn) / d2 + 4;
+        h *= 60; if (h < 0) h += 360;
+      }
+      const lum = (c: number): number => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+      const L = 0.2126 * lum(rn) + 0.7152 * lum(gn) + 0.0722 * lum(bn);
+      const ratioWhite = (1.05) / (L + 0.05), ratioBlack = (L + 0.05) / 0.05;
+      const fmt = (v: number): string => `${v.toFixed(1)}:1`;
+      const grade = (v: number): string => v >= 7 ? "AAA" : v >= 4.5 ? "AA" : v >= 3 ? "AA-large" : "fail";
+      return [
+        hexOut,
+        `rgb(${r}, ${g}, ${b})`,
+        `hsl(${Math.round(h)}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`,
+        `contrast  on white ${fmt(ratioWhite)} (${grade(ratioWhite)}) · on black ${fmt(ratioBlack)} (${grade(ratioBlack)})`,
+        `suggested text  ${ratioWhite >= ratioBlack ? "#ffffff" : "#000000"}`,
+      ];
+    },
+  },
 ];
