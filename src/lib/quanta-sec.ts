@@ -226,3 +226,51 @@ export function fnv1a(s: string): number {
   }
   return h >>> 0;
 }
+
+/* ---------- Shannon entropy (measured symbol distribution) ---------- */
+
+export interface ShannonResult {
+  bitsPerChar: number;
+  length: number;
+  unique: number;
+  classes: { lower: number; upper: number; digits: number; symbols: number; spaces: number };
+  guessSpaceBits: number;
+}
+
+/** real Shannon entropy of the actual character distribution, plus charset classes */
+export function shannonEntropy(text: string): ShannonResult {
+  const length = text.length;
+  const classes = { lower: 0, upper: 0, digits: 0, symbols: 0, spaces: 0 };
+  const freq = new Map<string, number>();
+  for (const ch of text) {
+    freq.set(ch, (freq.get(ch) ?? 0) + 1);
+    if (ch >= "a" && ch <= "z") classes.lower++;
+    else if (ch >= "A" && ch <= "Z") classes.upper++;
+    else if (ch >= "0" && ch <= "9") classes.digits++;
+    else if (ch === " " || ch === "\t") classes.spaces++;
+    else classes.symbols++;
+  }
+  let h = 0;
+  for (const count of freq.values()) {
+    const p = count / length;
+    h -= p * Math.log2(p);
+  }
+  /* effective key space if every position were drawn from the observed alphabet */
+  const alphabet = classes.lower + classes.upper + classes.digits + classes.symbols + (classes.spaces > 0 ? 1 : 0);
+  const guessSpaceBits = length > 0 ? Math.log2(Math.max(alphabet, 2)) * length : 0;
+  return {
+    bitsPerChar: length ? Math.round(h * 100) / 100 : 0,
+    length,
+    unique: freq.size,
+    classes,
+    guessSpaceBits: Math.round(guessSpaceBits),
+  };
+}
+
+export function shannonVerdict(bitsPerChar: number): string {
+  if (bitsPerChar >= 4) return "very high — effectively random";
+  if (bitsPerChar >= 3) return "high — hard to predict";
+  if (bitsPerChar >= 2) return "moderate — some structure";
+  if (bitsPerChar >= 1) return "low — patterned text (natural language ≈ 1.0-1.5)";
+  return "very low — repeated symbols";
+}

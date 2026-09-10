@@ -2,6 +2,7 @@
    Real crypto via WebCrypto, real recon data via the quanta backend. */
 
 import { CmdCtx, CmdDef, err, hasStdin } from "./core";
+import { shannonEntropy, shannonVerdict } from "../../lib/quanta-sec";
 
 /* ---------- shared crypto helpers (browser + bun compatible) ---------- */
 
@@ -406,6 +407,34 @@ export const SEC_COMMANDS: CmdDef[] = [
       const j = await runRecon(ctx.apiBase, domain);
       if (!j.ok) return err(`recon: ${j.error ?? "request failed"}`);
       return renderRecon(j);
+    },
+  },
+  {
+    name: "entropy", cat: "sec", desc: "Shannon entropy analysis of text/passwords", usage: "entropy <text>  ·  cat file | entropy",
+    run: (ctx) => {
+      let text = "";
+      if (hasStdin(ctx)) text = ctx.stdin ?? "";
+      else {
+        text = ctx.args.join(" ");
+        if (!text) return err("usage: entropy <text>  ·  cat file | entropy");
+      }
+      if (!text.trim()) return err("entropy: empty input");
+      const r = shannonEntropy(text.replace(/\n$/, ""));
+      const c = r.classes;
+      const cls = [
+        c.lower ? "lower" : null,
+        c.upper ? "upper" : null,
+        c.digits ? "digits" : null,
+        c.symbols ? "symbols" : null,
+        c.spaces ? "spaces" : null,
+      ].filter(Boolean).join(" · ");
+      return [
+        `shannon entropy: ${r.bitsPerChar} bits/char`,
+        `length: ${r.length} chars, ${r.unique} unique symbols`,
+        `classes present: ${cls || "(none)"}`,
+        `brute-force space ≈ 2^${r.guessSpaceBits} (observed alphabet)`,
+        `verdict: ${shannonVerdict(r.bitsPerChar)}`,
+      ];
     },
   },
 ];
