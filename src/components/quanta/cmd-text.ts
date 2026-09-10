@@ -386,6 +386,18 @@ export const TEXT_COMMANDS: CmdDef[] = [
     },
   },
   {
+    name: "yes", cat: "text", desc: "repeat a string n times (bounded)", usage: "yes [text] [count 1-100]",
+    run: (ctx) => {
+      const lastTok = ctx.args[ctx.args.length - 1] ?? "";
+      if (ctx.args.length === 1 && /^\d+$/.test(lastTok)) {
+        return Array.from({ length: Math.max(1, Math.min(parseInt(lastTok, 10), 100)) }, () => "y");
+      }
+      const text = ctx.args.length >= 2 ? ctx.args.slice(0, -1).join(" ") : "y";
+      const count = /^\d+$/.test(lastTok) && ctx.args.length >= 2 ? Math.min(parseInt(lastTok, 10), 100) : 5;
+      return Array.from({ length: Math.max(1, count) }, () => text);
+    },
+  },
+  {
     name: "units", cat: "text", desc: "unit conversion", usage: "units <value> <from> <to>",
     run: (ctx) => {
       if (ctx.args.length < 3) return err("usage: units <value> <from> <to>  (km mi kg lb c f l gal...)");
