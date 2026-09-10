@@ -6,7 +6,7 @@ import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum, expandTabs, wrapText, shuffled, primeFactors,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum, expandTabs, wrapText, shuffled, primeFactors, levenshtein,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -427,6 +427,21 @@ export const TEXT_COMMANDS: CmdDef[] = [
       for (const p of f) grouped.set(p, (grouped.get(p) ?? 0) + 1);
       const parts = [...grouped.entries()].map(([p, e]) => (e > 1 ? `${p}^${e}` : `${p}`));
       return [`${n} = ${f.join(" × ")}${grouped.size > 1 ? `  (= ${parts.join(" × ")})` : ""}`, f.length === 1 ? `${n} is prime` : `${f.length} prime factor(s)`];
+    },
+  },
+  {
+    name: "strdist", cat: "text", desc: "Levenshtein edit distance + similarity", usage: "strdist <wordA> <wordB>",
+    run: (ctx) => {
+      if (ctx.args.length < 2) return err("usage: strdist <wordA> <wordB>");
+      const [a, b] = ctx.args.slice(0, 2);
+      const d = levenshtein(a.toLowerCase(), b.toLowerCase());
+      const maxLen = Math.max(a.length, b.length) || 1;
+      const pct = Math.round((1 - d / maxLen) * 100);
+      return [
+        `distance('${a}', '${b}') = ${d}`,
+        `similarity: ${pct}%`,
+        d === 0 ? "identical" : pct > 80 ? "likely a typo of each other" : pct > 50 ? "similar" : "quite different",
+      ];
     },
   },
   {
