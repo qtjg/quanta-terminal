@@ -398,6 +398,25 @@ export const TEXT_COMMANDS: CmdDef[] = [
     },
   },
   {
+    name: "seq", cat: "text", desc: "print a number sequence", usage: "seq <end> | seq <start> <end> | seq <start> <end> <step>",
+    run: (ctx) => {
+      const nums = ctx.args.map((a) => parseFloat(a));
+      if (!nums.length || nums.length > 3 || nums.some((v) => !Number.isFinite(v))) {
+        return err("usage: seq <end> | seq <start> <end> | seq <start> <end> <step>");
+      }
+      let [start, end, step] = nums.length === 1 ? [1, nums[0], 1] : nums.length === 2 ? [nums[0], nums[1], 1] : nums;
+      if (step === 0) return err("seq: step cannot be 0");
+      if ((end - start) * step < 0) step = -Math.abs(step);
+      const out: string[] = [];
+      const max = 1000;
+      for (let v = start; (step > 0 ? v <= end : v >= end) && out.length < max; v += step) {
+        out.push(String(v));
+      }
+      if (out.length >= max) out.push(`… truncated at ${max} values`);
+      return out.length ? out : ["(empty range)"];
+    },
+  },
+  {
     name: "units", cat: "text", desc: "unit conversion", usage: "units <value> <from> <to>",
     run: (ctx) => {
       if (ctx.args.length < 3) return err("usage: units <value> <from> <to>  (km mi kg lb c f l gal...)");
