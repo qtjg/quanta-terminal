@@ -1,0 +1,201 @@
+/* QUANTA text-processing commands: grep regex case ascii url diff base64
+   hash uuid rand calc units */
+
+import { CmdCtx, CmdDef, err, absPath, contentLines, hasStdin } from "./core";
+import { isFile } from "./fs";
+import {
+  parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
+  urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
+  calcEval, convert, padCell,
+} from "./text-tools";
+
+/** load file content or treat trailing string arg as inline subject */
+function subject(ctx: CmdCtx): { text: string; from: string } {
+  const p = absPath(ctx, ctx.args[ctx.args.length - 1]);
+  const node = ctx.fs.get(p);
+  if (node && isFile(node)) return { text: node.content, from: ctx.args[ctx.args.length - 1] };
+  const last = ctx.args[ctx.args.length - 1] ?? "";
+  return { text: last, from: "(inline)" };
+}
+
+export const TEXT_COMMANDS: CmdDef[] = [
+  {
+    name: "grep", cat: "text", desc: "search text (file, pipe or inline)", usage: "grep [-i] [-n] [-v] <pattern> [file]  ·  … | grep <pat>",
+    run: (ctx) => {
+      const { flags, pos } = parseFlags(ctx.args);
+      if (!pos.length) return err("usage: grep [-i|-n|-v] <pattern> [file]");
+      const pattern = pos[0];
+      let text: string, from: string;
+      if (pos[1]) {
+        const node = ctx.fs.get(absPath(ctx, pos[1]));
+        if (!node || !isFile(node)) return err(`grep: ${pos[1]}: no such file`);
+        text = node.content; from = pos[1];
+      } else if (hasStdin(ctx)) {
+        text = ctx.stdin as string; from = "(stdin)";
+      } else {
+        const s = subject(ctx);
+        text = s.text; from = s.from;
+      }
+      let re: RegExp;
+      try {
+        re = new RegExp(pattern, flags.has("i") ? "i" : "");
+      } catch {
+        return err(`grep: invalid pattern '${pattern}'`);
+      }
+      const lines = contentLines(text);
+      const out: string[] = [];
+      lines.forEach((l, i) => {
+        const hit = flags.has("v") ? !re.test(l) : re.test(l);
+        if (hit) out.push(flags.has("n") ? `${String(i + 1).padStart(4)}: ${l}` : l);
+      });
+      if (!out.length) return [ `(no ${flags.has("v") ? "non-" : ""}matches in ${from})`];
+      return out;
+    },
+  },
+  {
+    name: "regex", cat: "text", desc: "regex tester: matches + groups", usage: 'regex <pattern> [flags g/i/m] "<subject>"',
+    run: (ctx) => {
+      if (ctx.args.length < 2) return err(`usage: regex <pattern> <flags> "<subject>"`);
+      const pattern = ctx.args[0];
+      const flagStr = ctx.args[1].replace(/[^gimsuy]/g, "");
+      const subjectStr = ctx.args.slice(2).join(" ");
+      if (!subjectStr) return err("regex: empty subject");
+      const res = regexLines(pattern, flagStr, subjectStr);
+      if (!res.ok) return [ `regex: ${res.error}` ];
+      if (!res.hits.length) return [ "no matches", `pattern /${pattern}/${flagStr}` ];
+      const out = [`pattern /${pattern}/${flagStr} — ${res.total} match(es)`];
+      for (const hit of res.hits) {
+        for (const m of hit.matches) {
+          const groups = m.groups.length ? `  groups:[${m.groups.map((g) => `'${g}'`).join(", ")}]` : "";
+          out.push(`line ${hit.line} @${m.index}: '${m.text}'${groups}`);
+        }
+      }
+      return out;
+    },
+  },
+  {
+    name: "case", cat: "text", desc: "11 case transforms", usage: "case <mode> <text>",
+    run: (ctx) => {
+      if (!ctx.args.length || ctx.args[0] === "list") {
+        return [`modes: ${CASE_MODES.join(" / ")}`, `usage: case <mode> "<text>"`];
+      }
+      const mode = ctx.args[0] as CaseMode;
+      if (!CASE_MODES.includes(mode)) return err(`unknown mode '${ctx.args[0]}' — try 'case list'`);
+      const text = ctx.args.slice(1).join(" ");
+      if (!text) return err("case: empty input");
+      return [ caseTransform(mode, text) ];
+    },
+  },
+  {
+    name: "ascii", cat: "text", desc: "ascii/unicode code table", usage: 'ascii <text>',
+    run: (ctx) => {
+      const text = ctx.args.join(" ");
+      if (!text) return err("usage: ascii <text>");
+      const rows = asciiTable(text);
+      const out = [ `${padCell("char", 6)}${padCell("dec", 7)}${padCell("hex", 7)}bin        utf-8` ];
+      for (const r of rows) {
+        out.push(`${padCell(r.ch, 6)}${padCell(String(r.dec), 7)}${padCell(r.hex, 7)}${r.bin}  ${r.bytes.map((b) => b.toString(16).padStart(2, "0")).join(" ")}`);
+      }
+      return out;
+    },
+  },
+  {
+    name: "url", cat: "text", desc: "url parser + enc/dec", usage: "url <url>  |  url e|d <text>",
+    run: (ctx) => {
+      if (!ctx.args.length) return err("usage: url <url> | url e|d <text>");
+      const mode = ctx.args[0];
+      if (mode === "e") return [ encodeURIComponent(ctx.args.slice(1).join(" ")) ];
+      if (mode === "d") {
+        try { return [ decodeURIComponent(ctx.args.slice(1).join(" ")) ]; }
+        catch { return err("url: malformed percent-encoding"); }
+      }
+      const res = urlInfo(ctx.args[0]);
+      return res.ok ? res.card : err(res.error);
+    },
+  },
+  {
+    name: "diff", cat: "text", desc: "line diff of two files (LCS)", usage: "diff <fileA> <fileB>",
+    run: (ctx) => {
+      if (ctx.args.length < 2) return err("usage: diff <fileA> <fileB>");
+      const nodes = ctx.args.slice(0, 2).map((a) => ctx.fs.get(absPath(ctx, a)));
+      if (!nodes[0] || !nodes[1]) return err(`diff: ${!nodes[0] ? ctx.args[0] : ctx.args[1]}: no such file`);
+      if (!isFile(nodes[0]) || !isFile(nodes[1])) return err("diff: both operands must be files");
+      const rows = diffText(nodes[0].content, nodes[1].content);
+      const out = [ `--- ${ctx.args[0]}`, `+++ ${ctx.args[1]}`, `stat ${diffStat(rows)}`, "" ];
+      for (const r of rows.slice(0, 120)) out.push(`${r.op} ${r.line}`);
+      if (rows.length > 120) out.push(`… ${rows.length - 120} more rows`);
+      if (diffStat(rows) === "+0 -0 =" + rows.filter((r) => r.op === "=").length) out.push("(files identical)");
+      return out;
+    },
+  },
+  {
+    name: "base64", cat: "text", desc: "base64 encode/decode", usage: "base64 e|d <text>",
+    run: (ctx) => {
+      const mode = ctx.args[0];
+      const text = ctx.args.slice(1).join(" ");
+      if (!mode || !text) return err("usage: base64 e|d <text>");
+      try {
+        return [ mode === "e" ? b64encode(text) : b64decode(text) ];
+      } catch {
+        return err("base64: invalid input");
+      }
+    },
+  },
+  {
+    name: "hash", cat: "text", desc: "sha-1/256/384/512 of text", usage: "hash [sha256] <text>",
+    run: async (ctx) => {
+      const ALGOS = ["sha1", "sha256", "sha384", "sha512"];
+      const first = (ctx.args[0] ?? "").toLowerCase();
+      const isAlgoToken = ALGOS.includes(first);
+      const algo = (isAlgoToken
+        ? "SHA-" + first.slice(3)
+        : "SHA-256") as "SHA-1" | "SHA-256" | "SHA-384" | "SHA-512";
+      const text = (isAlgoToken ? ctx.args.slice(1) : ctx.args).join(" ");
+      if (!text) return err("usage: hash [sha1|sha256|sha384|sha512] <text>");
+      const hex = await shaHex(algo, text);
+      return [ `${algo}: ${hex}` ];
+    },
+  },
+  {
+    name: "uuid", cat: "text", desc: "generate uuid v4", usage: "uuid [count]",
+    run: (ctx) => {
+      const count = Math.min(Math.max(parseInt(ctx.args[0] ?? "1", 10) || 1, 1), 20);
+      return Array.from({ length: count }, () => uuidV4());
+    },
+  },
+  {
+    name: "rand", cat: "text", desc: "random int / pick from list", usage: "rand [min max] | rand pick a b c...",
+    run: (ctx) => {
+      if (ctx.args[0] === "pick") {
+        const items = ctx.args.slice(1);
+        if (items.length < 2) return err("rand pick needs 2+ items");
+        return [ `picked: ${items[Math.floor(Math.random() * items.length)]}` ];
+      }
+      const min = parseInt(ctx.args[0] ?? "1", 10) || 1;
+      const max = parseInt(ctx.args[1] ?? "100", 10) || 100;
+      return [ String(Math.floor(Math.random() * (max - min + 1)) + min) ];
+    },
+  },
+  {
+    name: "calc", cat: "text", desc: "safe calculator (no eval)", usage: 'calc <expr>   e.g. calc 2^10/4 + sqrt(144)',
+    run: (ctx) => {
+      const expr = ctx.args.join(" ");
+      if (!expr) return err("usage: calc <expression>");
+      const val = calcEval(expr);
+      if (val === null) return err(`calc: cannot parse '${expr}'`);
+      if (Number.isNaN(val)) return [ "result: NaN (division by zero?)" ];
+      return [ `= ${val}` ];
+    },
+  },
+  {
+    name: "units", cat: "text", desc: "unit conversion", usage: "units <value> <from> <to>",
+    run: (ctx) => {
+      if (ctx.args.length < 3) return err("usage: units <value> <from> <to>  (km mi kg lb c f l gal...)");
+      const val = parseFloat(ctx.args[0]);
+      if (Number.isNaN(val)) return err(`units: '${ctx.args[0]}' is not a number`);
+      const res = convert(val, ctx.args[1], ctx.args[2]);
+      if (res === null) return err(`units: cannot convert ${ctx.args[1]} -> ${ctx.args[2]}`);
+      return [ `${val} ${ctx.args[1]} = ${Math.round(res * 1e6) / 1e6} ${ctx.args[2]}` ];
+    },
+  },
+];
