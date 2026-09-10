@@ -1,6 +1,6 @@
 /* QUANTA dev tools — pw base ts (all real, browser-native crypto & Intl) */
 
-import { CmdCtx, CmdDef, err } from "./core";
+import { CmdCtx, CmdDef, err, hasStdin } from "./core";
 
 export const DEV_COMMANDS: CmdDef[] = [
   {
@@ -130,6 +130,52 @@ export const DEV_COMMANDS: CmdDef[] = [
         `contrast  on white ${fmt(ratioWhite)} (${grade(ratioWhite)}) · on black ${fmt(ratioBlack)} (${grade(ratioBlack)})`,
         `suggested text  ${ratioWhite >= ratioBlack ? "#ffffff" : "#000000"}`,
       ];
+    },
+  },
+  {
+    name: "csv", cat: "dev", desc: "parse CSV → aligned table or JSON (quoted fields handled)", usage: "csv [json] <file>  ·  … | csv  ·  … | csv json",
+    run: (ctx) => {
+      const wantJson = ctx.args[0] === "json";
+      const pathArg = ctx.args.find((a, i) => i !== 0 || a !== "json");
+      let text: string;
+      if (hasStdin(ctx)) text = ctx.stdin ?? "";
+      else {
+        if (!pathArg) return err("usage: csv [json] <file>   or pipe CSV text in");
+        const node = ctx.fs.get(ctx.fs.resolve(ctx.cwd, pathArg));
+        if (!node || node.type !== "file") return err(`csv: ${pathArg}: no such file`);
+        text = node.content ?? "";
+      }
+      let rows: string[][] = [];
+      let field = "", row: string[] = [], inQ = false;
+      for (let i = 0; i < text.length; i++) {
+        const c = text[i];
+        if (inQ) {
+          if (c === '"' && text[i + 1] === '"') { field += '"'; i++; }
+          else if (c === '"') inQ = false;
+          else field += c;
+        } else if (c === '"') inQ = true;
+        else if (c === ",") { row.push(field); field = ""; }
+        else if (c === "\n") { row.push(field); field = ""; rows.push(row); row = []; }
+        else field += c;
+      }
+      if (field !== "" || row.length) { row.push(field); rows.push(row); }
+      rows = rows.filter((r0) => r0.some((cell) => cell.trim() !== ""));
+      if (!rows.length) return err("csv: no data rows found");
+      if (wantJson) {
+        const [head, ...body] = rows;
+        const objs = body.map((r0) => Object.fromEntries(head.map((k, i) => [k.trim(), (r0[i] ?? "").trim()])));
+        return objs.map((o) => JSON.stringify(o));
+      }
+      const width = Math.max(...rows.map((r0) => r0.length));
+      const cols: number[] = Array.from({ length: width }, (_, i) => Math.max(...rows.map((r0) => (r0[i] ?? "").length)));
+      const pad = (v: string, i: number): string => v + " ".repeat(Math.max(0, cols[i] - v.length));
+      const out: string[] = [];
+      rows.forEach((r0, ri) => {
+        out.push(r0.map((cell, i) => pad(cell, i)).join(ri === 0 ? "  " : "  ").trimEnd());
+        if (ri === 0) out.push(cols.map((w) => "─".repeat(w)).join("  "));
+      });
+      out.push(`${rows.length - 1} data row(s), ${width} column(s)`);
+      return out;
     },
   },
 ];
