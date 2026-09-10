@@ -6,7 +6,7 @@ import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum, expandTabs,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum, expandTabs, wrapText,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -318,22 +318,46 @@ export const TEXT_COMMANDS: CmdDef[] = [
     name: "expand", cat: "text", desc: "expand tabs to spaces (tab stops)", usage: "expand [-w width] <file>  ·  … | expand",
     run: (ctx) => {
       const { flags, pos } = parseFlags(ctx.args);
+      const width = flags.has("w") && pos.length >= 2 && /^\d+$/.test(pos[0]) ? Math.max(1, parseInt(pos[0], 10)) : 4;
+      const fileTok = flags.has("w") && /^\d+$/.test(pos[0] ?? "") ? pos[1] : pos[0];
       let text = "";
       let from = "";
       if (hasStdin(ctx)) {
         text = ctx.stdin ?? "";
         from = "(stdin)";
-      } else if (pos.length) {
-        const node = ctx.fs.get(absPath(ctx, pos[0]));
-        if (!node || !isFile(node)) return err(`expand: ${pos[0]}: no such file`);
+      } else if (fileTok) {
+        const node = ctx.fs.get(absPath(ctx, fileTok));
+        if (!node || !isFile(node)) return err(`expand: ${fileTok}: no such file`);
         text = node.content;
-        from = pos[0];
+        from = fileTok;
       } else {
         return err("usage: expand [-w width] <file>  ·  … | expand");
       }
-      const width = flags.has("w") && pos.length && /^\d+$/.test(pos[0]) ? parseInt(pos[0], 10) : 4;
       const out = expandTabs(text, width);
       return [`${from} → tabs expanded (width ${width})`, ...out.split("\n")];
+    },
+  },
+  {
+    name: "fold", cat: "text", desc: "wrap each line at width", usage: "fold [-w width] <file>  ·  … | fold",
+    run: (ctx) => {
+      const { flags, pos } = parseFlags(ctx.args);
+      const width = flags.has("w") && pos.length >= 2 && /^\d+$/.test(pos[0]) ? Math.max(10, parseInt(pos[0], 10)) : 80;
+      const fileTok = flags.has("w") && /^\d+$/.test(pos[0] ?? "") ? pos[1] : pos[0];
+      let text = "";
+      let from = "";
+      if (hasStdin(ctx)) {
+        text = ctx.stdin ?? "";
+        from = "(stdin)";
+      } else if (fileTok) {
+        const node = ctx.fs.get(absPath(ctx, fileTok));
+        if (!node || !isFile(node)) return err(`fold: ${fileTok}: no such file`);
+        text = node.content;
+        from = fileTok;
+      } else {
+        return err("usage: fold [-w width] <file>  ·  … | fold");
+      }
+      const out = wrapText(text, width);
+      return [`${from} → wrapped at ${width}`, ...out];
     },
   },
   {
