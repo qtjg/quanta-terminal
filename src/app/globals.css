@@ -1,0 +1,367 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* Inter is loaded in layout.tsx; geist vars were never defined (dead refs) */
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-geist-mono, monospace);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  /* QUANTA — dark-mode-first design system */
+  --radius: 0.25rem;
+  --background: #0d0f12;
+  --foreground: #f4f5f7;
+  --card: #14171c;
+  --card-foreground: #f4f5f7;
+  --popover: #14171c;
+  --popover-foreground: #f4f5f7;
+  --primary: #ff5722;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1e25;
+  --secondary-foreground: #f4f5f7;
+  --muted: #1a1e25;
+  --muted-foreground: #8e95a5;
+  --accent: #ff5722;
+  --accent-foreground: #ffffff;
+  --destructive: #e5484d;
+  --border: rgba(255, 255, 255, 0.09);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #ff5722;
+  --chart-1: #ff5722;
+  --chart-2: #e65100;
+  --chart-3: #ffb59d;
+  --chart-4: #8e95a5;
+  --chart-5: #f4f5f7;
+  --sidebar: #14171c;
+  --sidebar-foreground: #f4f5f7;
+  --sidebar-primary: #ff5722;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1e25;
+  --sidebar-accent-foreground: #f4f5f7;
+  --sidebar-border: rgba(255, 255, 255, 0.09);
+  --sidebar-ring: #ff5722;
+  --flame: #ff5722;
+  --flame-deep: #e65100;
+  --body-gray: #8e95a5;
+}
+
+.dark {
+  /* same as :root — the site is dark-first */
+  --background: #0d0f12;
+  --foreground: #f4f5f7;
+  --card: #14171c;
+  --card-foreground: #f4f5f7;
+  --popover: #14171c;
+  --popover-foreground: #f4f5f7;
+  --primary: #ff5722;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1e25;
+  --secondary-foreground: #f4f5f7;
+  --muted: #1a1e25;
+  --muted-foreground: #8e95a5;
+  --accent: #ff5722;
+  --accent-foreground: #ffffff;
+  --destructive: #e5484d;
+  --border: rgba(255, 255, 255, 0.09);
+  --input: rgba(255, 255, 255, 0.14);
+  --ring: #ff5722;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  ::selection {
+    background: #ff5722;
+    color: #fff;
+  }
+
+  /* ---- Mobile / Android touch-feel pass ---- */
+  /* Kill the gray tap-flash on Android WebKit */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Remove the 300ms double-tap-zoom delay on interactive elements */
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  label {
+    touch-action: manipulation;
+  }
+}
+
+/* Pressed-state feedback for touch users (applied via .pressable) */
+@media (hover: none) {
+  .pressable:active {
+    transform: scale(0.97);
+    filter: brightness(0.92);
+  }
+  .pressable {
+    transition: transform 0.15s ease, filter 0.15s ease;
+  }
+}
+
+/* Safe-area helpers for notched phones (requires viewport-fit=cover) */
+.pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.pb-safe-nav {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+}
+
+@layer utilities {
+  .text-body-gray {
+    color: var(--body-gray);
+  }
+  .text-flame {
+    color: var(--flame);
+  }
+  .bg-flame {
+    background-color: var(--flame);
+  }
+  .glass {
+    background: rgba(20, 23, 28, 0.55);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .display-tight {
+    letter-spacing: -0.03em;
+    line-height: 0.92;
+  }
+  .animate-marquee {
+    animation: marquee 34s linear infinite;
+  }
+  .animate-marquee:hover {
+    animation-play-state: paused;
+  }
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(255, 87, 34, 0.4);
+    border-radius: 999px;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes spin3d {
+  from {
+    transform: rotate3d(1, 1, 0, 0deg);
+  }
+  to {
+    transform: rotate3d(1, 1, 0, 360deg);
+  }
+}
+
+@keyframes spin3d-slow {
+  from {
+    transform: rotate3d(0.4, 1, 0.2, 0deg);
+  }
+  to {
+    transform: rotate3d(0.4, 1, 0.2, 360deg);
+  }
+}
+
+@keyframes ring3d {
+  from {
+    transform: rotateX(66deg) rotateZ(0deg);
+  }
+  to {
+    transform: rotateX(66deg) rotateZ(360deg);
+  }
+}
+
+@keyframes float3d {
+  0%,
+  100% {
+    transform: translateY(0) rotate3d(1, 1, 0, 0deg);
+  }
+  50% {
+    transform: translateY(-20px) rotate3d(1, 1, 0, 180deg);
+  }
+}
+
+.animate-spin3d {
+  animation: spin3d 16s linear infinite;
+}
+.animate-spin3d-slow {
+  animation: spin3d-slow 26s linear infinite;
+}
+.animate-ring3d {
+  animation: ring3d 12s linear infinite;
+}
+.animate-float3d {
+  animation: float3d 11s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee,
+  .animate-spin3d,
+  .animate-spin3d-slow,
+  .animate-ring3d,
+  .animate-float3d {
+    animation: none;
+  }
+}
+
+/* ---- Touch & mobile feel --------------------------------------------------
+   Kill the gray tap-flash on Android, remove double-tap-zoom latency on
+   interactive elements, and stop the browser chrome overscroll glow so the
+   site feels like a native app on phones. */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+a,
+button,
+[role="button"],
+[role="tab"],
+input,
+select,
+textarea,
+label,
+summary {
+  touch-action: manipulation;
+}
+html,
+body {
+  overscroll-behavior-y: none;
+}
+/* Pressed feedback on touch devices only (no hover-capable mouse) */
+@media (hover: none) and (pointer: coarse) {
+  button:active,
+  a:active,
+  [role="button"]:active,
+  [role="tab"]:active {
+    transform: scale(0.97);
+  }
+  /* Never scale layout-critical chrome */
+  header button:active,
+  .no-press-scale:active {
+    transform: none;
+  }
+}
+
+/* ---- Safe-area helpers (notched phones / gesture bars) --------------------
+   Require viewport-fit=cover (set in the viewport export). */
+.pt-safe {
+  padding-top: max(0px, env(safe-area-inset-top));
+}
+.pb-safe {
+  padding-bottom: max(0px, env(safe-area-inset-bottom));
+}
+.pb-safe-nav {
+  padding-bottom: calc(0.75rem + max(0px, env(safe-area-inset-bottom)));
+}
+.px-safe {
+  padding-left: max(0px, env(safe-area-inset-left));
+  padding-right: max(0px, env(safe-area-inset-right));
+}
+
+/* Invisible hit-area extender — keeps 40px visuals but reaches the
+   44px minimum tap target recommended on touch screens. */
+.hit-44 {
+  position: relative;
+}
+.hit-44::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+}
+
+/* Anchor offset so sections never hide under the fixed navbar */
+html {
+  scroll-padding-top: 96px;
+}
+
+/* Visible keyboard focus everywhere */
+:focus-visible {
+  outline: 2px solid #ff5722;
+  outline-offset: 2px;
+  border-radius: 1px;
+}
+
+/* Respect reduced motion for smooth scrolling */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+/* Prevent decorative absolutely-positioned elements from causing
+   horizontal scroll on small screens. `clip` keeps position:sticky working. */
+html,
+body {
+  overflow-x: clip;
+}
+
+/* Stop Android Chrome pull-to-refresh from fighting long scrollbacks */
+@media (pointer: coarse) {
+  body {
+    overscroll-behavior-y: pan-y;
+  }
+}
+
+/* css bump 1788744076 */
