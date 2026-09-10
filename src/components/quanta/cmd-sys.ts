@@ -147,6 +147,31 @@ export const SYS_COMMANDS: CmdDef[] = [
     },
   },
   {
+    name: "tz", cat: "sys", desc: "current time across timezones (real Intl)", usage: "tz [list]  ·  tz <Region/City> ...",
+    run: (ctx) => {
+      const now = ctx.now();
+      if (ctx.args[0] === "list") {
+        const zones = ["UTC", "America/Los_Angeles", "America/New_York", "Europe/London", "Europe/Berlin", "Asia/Dubai", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney"];
+        return [`zones supported by name (via Intl):`, ...zones.map((z) => `  ${z}`)];
+      }
+      const zones = ctx.args.length
+        ? ctx.args
+        : [...new Set([ctx.bootInfo.tz || "UTC", "UTC"])];
+      const out: string[] = [];
+      for (const zone of zones) {
+        try {
+          const fmt = new Intl.DateTimeFormat("en-GB", {
+            timeZone: zone, dateStyle: "medium", timeStyle: "short", hour12: false,
+          });
+          out.push(`${padCell(zone, 24)} ${fmt.format(now)}`);
+        } catch {
+          out.push(`${padCell(zone, 24)} unknown timezone — try 'tz list'`);
+        }
+      }
+      return out;
+    },
+  },
+  {
     name: "neofetch", cat: "sys", desc: "system summary card",
     run: (ctx) => {
       const { files, bytes } = ctx.fs.countAll();
