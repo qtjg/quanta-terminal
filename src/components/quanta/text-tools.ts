@@ -552,3 +552,18 @@ export function alignLine(text: string, width: number, mode: "left" | "right" | 
   }
   return text + " ".repeat(padN);
 }
+
+/* ---------- v0.6: lorem ipsum ---------- */
+
+const LOREM_WORDS =
+  "lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua enim ad minim veniam quis nostrud exercitation ullamco laboris nisi aliquip ex ea commodo consequat duis aute irure in reprehenderit voluptate velit esse cillum eu fugiat nulla pariatur excepteur sint occaecat cupidatat non proident sunt culpa qui officia deserunt mollit anim id est laborum".split(" ");
+
+export function loremIpsum(paragraphs: number): string[] {
+  const rand = (n: number) => Math.floor(Math.random() * n);
+  const sentence = () => {
+    const words = Array.from({ length: 6 + rand(10) }, () => LOREM_WORDS[rand(LOREM_WORDS.length)]);
+    return words[0][0].toUpperCase() + words[0].slice(1) + " " + words.slice(1).join(" ") + ".";
+  };
+  const paragraph = () => Array.from({ length: 3 + rand(4) }, sentence).join(" ");
+  return Array.from({ length: Math.max(1, Math.min(paragraphs, 8)) }, paragraph);
+}

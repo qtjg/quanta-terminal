@@ -6,7 +6,7 @@ import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -305,6 +305,13 @@ export const TEXT_COMMANDS: CmdDef[] = [
         lines = [text];
       }
       return lines.map((l) => alignLine(l, width, mode));
+    },
+  },
+  {
+    name: "lorem", cat: "text", desc: "lorem ipsum filler text generator", usage: "lorem [paragraphs 1-8]",
+    run: (ctx) => {
+      const n = Math.max(1, Math.min(parseInt(ctx.args[0] ?? "2", 10) || 2, 8));
+      return loremIpsum(n).flatMap((p) => [p, ""]).slice(0, -1);
     },
   },
   {
