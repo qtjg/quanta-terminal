@@ -600,3 +600,20 @@ export function shuffled<T>(items: T[]): T[] {
   }
   return arr;
 }
+
+/* ---------- v0.6: prime factorization ---------- */
+
+/** trial division; returns prime factors (with repetition), [] for n < 2 */
+export function primeFactors(n: number): number[] {
+  if (!Number.isInteger(n) || n < 2) return [];
+  const out: number[] = [];
+  let v = n;
+  for (let p = 2; p * p <= v; p += p === 2 ? 1 : 2) {
+    while (v % p === 0) {
+      out.push(p);
+      v /= p;
+    }
+  }
+  if (v > 1) out.push(v);
+  return out;
+}

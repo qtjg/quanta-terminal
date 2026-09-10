@@ -6,7 +6,7 @@ import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum, expandTabs, wrapText, shuffled,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum, expandTabs, wrapText, shuffled, primeFactors,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -414,6 +414,19 @@ export const TEXT_COMMANDS: CmdDef[] = [
       }
       if (out.length >= max) out.push(`… truncated at ${max} values`);
       return out.length ? out : ["(empty range)"];
+    },
+  },
+  {
+    name: "factor", cat: "text", desc: "prime factorization of an integer", usage: "factor <n>",
+    run: (ctx) => {
+      const n = parseInt(ctx.args[0] ?? "", 10);
+      if (!Number.isInteger(n) || n < 1) return err("usage: factor <integer ≥ 1>");
+      if (n === 1) return ["1 has no prime factorization"];
+      const f = primeFactors(n);
+      const grouped = new Map<number, number>();
+      for (const p of f) grouped.set(p, (grouped.get(p) ?? 0) + 1);
+      const parts = [...grouped.entries()].map(([p, e]) => (e > 1 ? `${p}^${e}` : `${p}`));
+      return [`${n} = ${f.join(" × ")}${grouped.size > 1 ? `  (= ${parts.join(" × ")})` : ""}`, f.length === 1 ? `${n} is prime` : `${f.length} prime factor(s)`];
     },
   },
   {
