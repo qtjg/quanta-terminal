@@ -1,7 +1,7 @@
 /* QUANTA filesystem commands */
 
 import { CmdCtx, CmdDef, err, absPath, nArgs, padCell, contentLines, hasStdin, stdinLines } from "./core";
-import { isDir, isFile } from "./fs";
+import { isDir, isFile, FSNode } from "./fs";
 import { parseFlags, fmtBytes } from "./text-tools";
 
 export const FS_COMMANDS: CmdDef[] = [
@@ -364,6 +364,103 @@ export const FS_COMMANDS: CmdDef[] = [
       return ctx.fs.writeFile(p, content)
         ? [`wrote ${content.length} bytes to ${fileTok}`]
         : err(`write: cannot write '${fileTok}'`);
+    },
+  },
+  {
+    name: "basename", cat: "fs", desc: "strip directory from path", usage: "basename <path> [suffix]",
+    run: (ctx) => {
+      if (!ctx.args.length) return err("usage: basename <path> [suffix]");
+      const parts = ctx.args[0].split("/").filter(Boolean);
+      if (!parts.length) return ["/"];
+      let name = parts[parts.length - 1];
+      const suffix = ctx.args[1];
+      if (suffix && name.endsWith(suffix) && name.length > suffix.length) {
+        name = name.slice(0, name.length - suffix.length);
+      }
+      return [name];
+    },
+  },
+  {
+    name: "dirname", cat: "fs", desc: "strip last component from path", usage: "dirname <path>",
+    run: (ctx) => {
+      if (!ctx.args.length) return err("usage: dirname <path>");
+      const parts = ctx.args[0].split("/").filter(Boolean);
+      parts.pop();
+      return ["/" + parts.join("/")];
+    },
+  },
+  {
+    name: "realpath", cat: "fs", desc: "canonical absolute path (resolves . .. ~)", usage: "realpath <path>",
+    run: (ctx) => {
+      if (!ctx.args.length) return err("usage: realpath <path>");
+      return [ctx.fs.resolve(ctx.cwd, ctx.args[0])];
+    },
+  },
+  {
+    name: "split", cat: "fs", desc: "split a file into N-line chunks (xaa, xab, …)", usage: "split [-n lines] <file>",
+    run: (ctx) => {
+      let n = 10;
+      const ni = ctx.args.indexOf("-n");
+      if (ni >= 0) {
+        const v = parseInt(ctx.args[ni + 1] ?? "", 10);
+        if (!v || v < 1) return err("split: -n needs a positive line count");
+        n = Math.min(v, 1000);
+        ctx.args.splice(ni, 2);
+      }
+      const src = ctx.args[0];
+      if (!src) return err("usage: split [-n <lines>] <file>");
+      const abs = absPath(ctx, src);
+      const node = ctx.fs.get(abs);
+      if (!node || !isFile(node)) return err(`split: ${src}: no such file`);
+      const lines = contentLines(node.content);
+      if (!lines.length) return err("split: file is empty");
+      const dir = abs.slice(0, abs.lastIndexOf("/")) || "/";
+      const suffix = (i: number) => {
+        let s = "";
+        let v = i;
+        do { s = "abcdefghijklmnopqrstuvwxyz"[v % 26] + s; v = Math.floor(v / 26); } while (v > 0);
+        return s.padStart(2, "a").slice(-2);
+      };
+      const chunks: string[] = [];
+      for (let i = 0; i * n < lines.length; i++) {
+        const part = lines.slice(i * n, (i + 1) * n).join("\n") + "\n";
+        const name = "x" + suffix(i);
+        if (!ctx.fs.writeFile(dir === "/" ? `/${name}` : `${dir}/${name}`, part)) {
+          return err(`split: cannot write chunk '${name}'`);
+        }
+        chunks.push(`${name}  ${Math.min(n, lines.length - i * n)} lines`);
+      }
+      return [`split '${src}' → ${chunks.length} chunk(s) of ≤${n} lines`, ...chunks];
+    },
+  },
+  {
+    name: "fsck", cat: "fs", desc: "VFS integrity check — walks every node", usage: "fsck",
+    run: (ctx) => {
+      const problems: string[] = [];
+      let dirs = 0, files = 0;
+      const visit = (path: string, node: FSNode) => {
+        if (!/^[d-][rwxsStT-]{9}$/.test(node.mode)) problems.push(`bad mode '${node.mode}' at ${path}`);
+        if (typeof node.mtime !== "number" || Number.isNaN(node.mtime)) problems.push(`bad mtime at ${path}`);
+        if (isDir(node)) {
+          dirs++;
+          for (const [key, child] of Object.entries(node.children)) {
+            if (child.name !== key) problems.push(`name mismatch: ${path} → key '${key}' vs node '${child.name}'`);
+            visit(path === "/" ? `/${key}` : `${path}/${key}`, child);
+          }
+        } else {
+          files++;
+          if (typeof node.content !== "string") problems.push(`non-string content at ${path}`);
+        }
+      };
+      visit("/", ctx.fs.root);
+      const out = ["fsck: quanta virtual filesystem", `checked ${dirs} directories, ${files} files`];
+      if (problems.length) {
+        out.push("", `${problems.length} problem(s):`, ...problems.slice(0, 20));
+        if (problems.length > 20) out.push(`… ${problems.length - 20} more`);
+      } else {
+        out.push("0 problems — filesystem clean");
+      }
+      return out;
     },
   },
 ];
