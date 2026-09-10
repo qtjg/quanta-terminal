@@ -6,7 +6,7 @@ import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -185,6 +185,60 @@ export const TEXT_COMMANDS: CmdDef[] = [
       if (val === null) return err(`calc: cannot parse '${expr}'`);
       if (Number.isNaN(val)) return [ "result: NaN (division by zero?)" ];
       return [ `= ${val}` ];
+    },
+  },
+  {
+    name: "json", cat: "text", desc: "JSON toolkit — validate, pretty, keys, get, type", usage: 'json [-c] [keys | get <dot.path> | type <dot.path>] <file>  ·  echo \'…\' | json',
+    run: (ctx) => {
+      const { flags, pos } = parseFlags(ctx.args);
+      const MODES = ["keys", "get", "type"];
+      const mode = MODES.includes(pos[0] ?? "") ? (pos[0] as string) : "";
+      const rest = mode ? pos.slice(1) : pos;
+      let path = "";
+      let subjectParts = rest;
+      if (mode === "get" || mode === "type") {
+        if (!rest.length) return err(`usage: json ${mode} <dot.path> <file>  ·  … | json ${mode} <dot.path>`);
+        path = rest[0];
+        subjectParts = rest.slice(1);
+      }
+      let text = "";
+      let from = "";
+      if (hasStdin(ctx)) {
+        text = (ctx.stdin ?? "");
+        from = "(stdin)";
+      } else if (subjectParts.length) {
+        const lastTok = subjectParts[subjectParts.length - 1];
+        const node = ctx.fs.get(absPath(ctx, lastTok));
+        if (node && isFile(node)) {
+          text = node.content;
+          from = lastTok;
+        } else {
+          text = subjectParts.join(" ");
+          from = "(inline)";
+        }
+      }
+      if (!text.trim()) return err("usage: json [keys|get <path>|type <path>] <file>  ·  echo '…' | json");
+      const parsed = jsonParseChecked(text);
+      if (!parsed.ok) return err(`json: invalid JSON — ${parsed.error}`);
+      const v = parsed.value;
+      if (mode === "keys") {
+        if (Array.isArray(v)) return [`array[${v.length}] — numeric indices 0..${Math.max(v.length - 1, 0)}`];
+        if (v !== null && typeof v === "object") {
+          const rec = v as Record<string, unknown>;
+          const out = Object.entries(rec).map(([k, val]) => `  ${k}: ${jsonType(val)}`);
+          return [`${Object.keys(rec).length} top-level key(s) in ${from}`, ...out];
+        }
+        return err(`json keys: subject is ${jsonType(v)}, not an object/array`);
+      }
+      if (mode === "get" || mode === "type") {
+        const r = jsonGet(v, path);
+        if (!r.ok) return err(`json get: ${r.error}`);
+        if (mode === "type") return [`${path || "/"} → ${jsonType(r.value)}`];
+        const rendered = typeof r.value === "string" ? r.value : JSON.stringify(r.value, null, 2);
+        return [`${path || "/"} = (${jsonType(r.value)})`, ...rendered.split("\n")];
+      }
+      const out = flags.has("c") ? JSON.stringify(v) : JSON.stringify(v, null, 2);
+      return [`${from}: valid JSON, ${jsonType(v)}, ${text.length} bytes`, ...out.split("\n")];
     },
   },
   {

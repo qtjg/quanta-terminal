@@ -465,3 +465,42 @@ export function fmtBytes(n: number): string {
   if (n < 1024 ** 3) return `${(n / 1024 ** 2).toFixed(1)} M`;
   return `${(n / 1024 ** 3).toFixed(1)} G`;
 }
+
+/* ---------- v0.6: JSON toolkit ---------- */
+
+export function jsonParseChecked(text: string): { ok: true; value: unknown } | { ok: false; error: string } {
+  try {
+    return { ok: true, value: JSON.parse(text) as unknown };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message.split("\n")[0] : String(e) };
+  }
+}
+
+export function jsonType(v: unknown): string {
+  if (v === null) return "null";
+  if (Array.isArray(v)) return "array";
+  return typeof v;
+}
+
+/** walk a JSON value via dot path: a.b.0.c — numeric segments index arrays */
+export function jsonGet(value: unknown, path: string): { ok: true; value: unknown } | { ok: false; error: string } {
+  const segs = path.split(".").filter(Boolean);
+  let cur: unknown = value;
+  for (const seg of segs) {
+    if (cur === null || typeof cur !== "object") {
+      return { ok: false, error: `cannot descend into ${jsonType(cur)} at '${seg}'` };
+    }
+    if (Array.isArray(cur)) {
+      const i = Number(seg);
+      if (!Number.isInteger(i) || i < 0 || i >= cur.length) {
+        return { ok: false, error: `index '${seg}' out of range (0..${cur.length - 1})` };
+      }
+      cur = cur[i];
+    } else {
+      const rec = cur as Record<string, unknown>;
+      if (!(seg in rec)) return { ok: false, error: `key '${seg}' not found` };
+      cur = rec[seg];
+    }
+  }
+  return { ok: true, value: cur };
+}
