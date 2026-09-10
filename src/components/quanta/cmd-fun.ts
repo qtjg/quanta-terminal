@@ -1,7 +1,7 @@
 /* QUANTA fun + AI commands: banner cowsay fortune stopwatch ai models weather ipinfo */
 
 import { CmdCtx, CmdDef, err, hasStdin, swElapsed } from "./core";
-import { bannerText, cowsay, FORTUNES, fmtElapsed, rollDice } from "./text-tools";
+import { bannerText, cowsay, FORTUNES, fmtElapsed, rollDice, EIGHT_BALL } from "./text-tools";
 import { fetchViaApi } from "./cmd-sys";
 import { classifyTask, pickRoute, ROUTE_PREF, TaskType } from "../../lib/quanta-omniroute";
 
@@ -222,6 +222,18 @@ export const FUN_COMMANDS: CmdDef[] = [
       return [
         `🎲 ${spec}: ${rolled.rolls.join(" + ")} = ${total}`,
         rolled.rolls.length > 1 ? `(each die is 1-${rolled.sides})` : `(die is 1-${rolled.sides})`,
+      ];
+    },
+  },
+  {
+    name: "8ball", cat: "fun", desc: "the magic 8-ball answers", usage: "8ball <question>",
+    run: (ctx) => {
+      const q = ctx.args.join(" ");
+      if (!q) return err("usage: 8ball <yes/no question>");
+      const answer = EIGHT_BALL[Math.floor(Math.random() * EIGHT_BALL.length)];
+      return [
+        `❓ ${q.endsWith("?") ? q : q + "?"}`,
+        `🎱 ${answer}`,
       ];
     },
   },
