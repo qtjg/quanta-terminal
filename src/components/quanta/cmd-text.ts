@@ -6,7 +6,7 @@ import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -239,6 +239,17 @@ export const TEXT_COMMANDS: CmdDef[] = [
       }
       const out = flags.has("c") ? JSON.stringify(v) : JSON.stringify(v, null, 2);
       return [`${from}: valid JSON, ${jsonType(v)}, ${text.length} bytes`, ...out.split("\n")];
+    },
+  },
+  {
+    name: "slug", cat: "text", desc: "slugify text → URL-safe identifier", usage: 'slug <text> [separator]  ·  echo "…" | slug',
+    run: (ctx) => {
+      const last = ctx.args[ctx.args.length - 1] ?? "";
+      const usep = ["-", "_", "."].includes(last) ? last : "-";
+      let text = usep === last ? ctx.args.slice(0, -1).join(" ") : ctx.args.join(" ");
+      if (!text.trim() && hasStdin(ctx)) text = ctx.stdin ?? "";
+      if (!text.trim()) return err("usage: slug <text> [separator]  ·  echo '…' | slug");
+      return [slugify(text, usep) || "(empty slug)"];
     },
   },
   {

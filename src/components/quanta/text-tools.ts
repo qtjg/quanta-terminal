@@ -504,3 +504,19 @@ export function jsonGet(value: unknown, path: string): { ok: true; value: unknow
   }
   return { ok: true, value: cur };
 }
+
+/* ---------- v0.6: slugify ---------- */
+
+export function slugify(text: string, sep = "-"): string {
+  const safeSep = sep.replace(/[^-_.~]/g, "") || "-";
+  return text
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[''`]/g, "")
+    .replace(/[^a-z0-9]+/g, safeSep)
+    .split(safeSep === "." ? "." : safeSep)
+    .filter(Boolean)
+    .join(safeSep)
+    .slice(0, 96);
+}
