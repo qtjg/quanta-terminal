@@ -362,11 +362,16 @@ NEXT_PUBLIC_SITE_URL=https://...     # canonical URL for robots/sitemap
 
 ## 🗺 Roadmap
 
-- [ ] Push notifications for long-running AI jobs
-- [ ] Mobile soft-keyboard UX polish
-- [ ] Streaming AI output (token-by-token)
+Tracked on the [issue tracker](https://github.com/qtjg/quanta-terminal/issues) — grab one and read the acceptance criteria:
+
+- [ ] Streaming AI output (token-by-token) — [#1](https://github.com/qtjg/quanta-terminal/issues/1)
+- [ ] Push notifications for long-running AI jobs — [#2](https://github.com/qtjg/quanta-terminal/issues/2)
+- [ ] Mobile soft-keyboard UX polish — [#3](https://github.com/qtjg/quanta-terminal/issues/3)
+- [ ] WebSocket collaborative sessions — [#4](https://github.com/qtjg/quanta-terminal/issues/4)
 - [ ] Scriptable `.quanta` scripts (run command files)
-- [ ] WebSocket collaborative sessions
+- [x] ~~Dev tools category: `pw`, `base`, `ts`, `color`, `csv`, `cron`~~ — shipped in v0.6.0
+
+Also accepting: [VFS snapshot export/import](https://github.com/qtjg/quanta-terminal/issues/5) · [history autosuggestions](https://github.com/qtjg/quanta-terminal/issues/6) · [AI pipe support](https://github.com/qtjg/quanta-terminal/issues/7) · [PWA offline hardening](https://github.com/qtjg/quanta-terminal/issues/8) · [visual regression suite](https://github.com/qtjg/quanta-terminal/issues/9) · [session persistence](https://github.com/qtjg/quanta-terminal/issues/10)
 
 ## 🤝 Contributing
 
