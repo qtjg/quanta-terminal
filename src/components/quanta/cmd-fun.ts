@@ -1,7 +1,7 @@
 /* QUANTA fun + AI commands: banner cowsay fortune stopwatch ai models weather ipinfo */
 
 import { CmdCtx, CmdDef, err, hasStdin, swElapsed } from "./core";
-import { bannerText, cowsay, FORTUNES, fmtElapsed } from "./text-tools";
+import { bannerText, cowsay, FORTUNES, fmtElapsed, rollDice } from "./text-tools";
 import { fetchViaApi } from "./cmd-sys";
 import { classifyTask, pickRoute, ROUTE_PREF, TaskType } from "../../lib/quanta-omniroute";
 
@@ -212,6 +212,19 @@ interface IpWhoResponse {
 }
 
 export const FUN_COMMANDS: CmdDef[] = [
+  {
+    name: "dice", cat: "fun", desc: "roll NdM dice — total + individual rolls", usage: "dice [NdM]  ·  dice 2d6 · dice d20",
+    run: (ctx) => {
+      const spec = ctx.args[0] ?? "1d6";
+      const rolled = rollDice(spec);
+      if (!rolled) return err(`dice: '${spec}' is not a valid NdM spec — try dice 2d6 or dice d20`);
+      const total = rolled.rolls.reduce((s, v) => s + v, 0);
+      return [
+        `🎲 ${spec}: ${rolled.rolls.join(" + ")} = ${total}`,
+        rolled.rolls.length > 1 ? `(each die is 1-${rolled.sides})` : `(die is 1-${rolled.sides})`,
+      ];
+    },
+  },
   {
     name: "banner", cat: "fun", desc: "big block-letter banner", usage: "banner <text>",
     run: (ctx) => {

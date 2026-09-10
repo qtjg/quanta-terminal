@@ -601,6 +601,20 @@ export function shuffled<T>(items: T[]): T[] {
   return arr;
 }
 
+/* ---------- v0.6: dice ---------- */
+
+/** roll NdM dice; returns individual rolls (null if the spec is invalid) */
+export function rollDice(spec: string): { rolls: number[]; sides: number } | null {
+  const m = /^(\d{0,3})d(\d{1,3})$/i.exec(spec.trim());
+  if (!m) return null;
+  const count = Math.min(Math.max(parseInt(m[1] || "1", 10), 1), 10);
+  const sides = Math.min(Math.max(parseInt(m[2], 10), 2), 1000);
+  return {
+    rolls: Array.from({ length: count }, () => Math.floor(Math.random() * sides) + 1),
+    sides,
+  };
+}
+
 /* ---------- v0.6: prime factorization ---------- */
 
 /** trial division; returns prime factors (with repetition), [] for n < 2 */
