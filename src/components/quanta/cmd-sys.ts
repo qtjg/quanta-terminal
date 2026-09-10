@@ -147,6 +147,47 @@ export const SYS_COMMANDS: CmdDef[] = [
     },
   },
   {
+    name: "headers", cat: "net", desc: "REAL HTTP response headers for a URL", usage: "headers <url>",
+    run: async (ctx) => {
+      const url = ctx.args[0];
+      if (!url) return err("usage: headers <url>");
+      if (!/^https?:\/\//i.test(url)) return err("headers: url must start with http:// or https://");
+      const res = await fetchViaApi(ctx.apiBase, url, 100);
+      if (!res.ok) return err(`headers: ${res.error ?? "request failed"}`);
+      const hs = Object.entries(res.headers ?? {});
+      if (!hs.length) return err("headers: no headers returned");
+      const out = [`HTTP ${res.status} ${res.statusText}`, `url: ${url}`, `${hs.length} header(s):`, ""];
+      for (const [k, v] of hs) out.push(`  ${padCell(k, 22)} ${v.length > 90 ? v.slice(0, 90) + "…" : v}`);
+      out.push("", `served in ${res.timeMs} ms`);
+      return out;
+    },
+  },
+  {
+    name: "isup", cat: "net", desc: "REAL site availability check (status + latency)", usage: "isup <url>",
+    run: async (ctx) => {
+      const url = ctx.args[0];
+      if (!url) return err("usage: isup <url>");
+      const target = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+      const t0 = Date.now();
+      const res = await fetchViaApi(ctx.apiBase, target, 100);
+      const roundTrip = Date.now() - t0;
+      if (!res.ok) {
+        return [
+          `✗ ${target} — DOWN or unreachable`,
+          `error: ${res.error ?? "unknown"} (${roundTrip} ms)`,
+        ];
+      }
+      const status = res.status ?? 0;
+      const verdict = status < 400 ? "UP" : "REACHED (error status)";
+      const mark = status < 400 ? "✓" : "!";
+      return [
+        `${mark} ${target} — ${verdict}`,
+        `status: ${status} ${res.statusText ?? ""}`.trimEnd(),
+        `response: ${res.timeMs} ms (round trip ${roundTrip} ms), ${res.bytes ?? 0} bytes`,
+      ];
+    },
+  },
+  {
     name: "tz", cat: "sys", desc: "current time across timezones (real Intl)", usage: "tz [list]  ·  tz <Region/City> ...",
     run: (ctx) => {
       const now = ctx.now();
