@@ -520,3 +520,21 @@ export function slugify(text: string, sep = "-"): string {
     .join(safeSep)
     .slice(0, 96);
 }
+
+/* ---------- v0.6: word frequency ---------- */
+
+const STOP_WORDS = new Set([
+  "the", "a", "an", "and", "or", "but", "of", "to", "in", "on", "for", "with",
+  "at", "by", "from", "is", "are", "was", "were", "be", "been", "it", "its",
+  "this", "that", "as", "i", "you", "he", "she", "we", "they", "not", "no",
+]);
+
+export function wordFreq(text: string, stop = false): Array<[string, number]> {
+  const words = text.toLowerCase().match(/[a-z0-9][a-z0-9'-]*/g) ?? [];
+  const freq = new Map<string, number>();
+  for (const w of words) {
+    if (stop && STOP_WORDS.has(w)) continue;
+    freq.set(w, (freq.get(w) ?? 0) + 1);
+  }
+  return [...freq.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+}

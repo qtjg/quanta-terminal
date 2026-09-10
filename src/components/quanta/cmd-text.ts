@@ -6,7 +6,7 @@ import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -250,6 +250,43 @@ export const TEXT_COMMANDS: CmdDef[] = [
       if (!text.trim() && hasStdin(ctx)) text = ctx.stdin ?? "";
       if (!text.trim()) return err("usage: slug <text> [separator]  ·  echo '…' | slug");
       return [slugify(text, usep) || "(empty slug)"];
+    },
+  },
+  {
+    name: "wordfreq", cat: "text", desc: "word frequency table (-s skips stop words)", usage: "wordfreq [-s] [-n N] <file>  ·  … | wordfreq",
+    run: (ctx) => {
+      const { flags, pos } = parseFlags(ctx.args);
+      let n = 10;
+      let fileParts = pos;
+      if (flags.has("n") && pos.length >= 2 && /^\d+$/.test(pos[0])) {
+        n = Math.min(Math.max(parseInt(pos[0], 10), 1), 50);
+        fileParts = pos.slice(1);
+      }
+      let text = "";
+      let from = "";
+      if (hasStdin(ctx)) {
+        text = ctx.stdin ?? "";
+        from = "(stdin)";
+      } else if (fileParts.length) {
+        const node = ctx.fs.get(absPath(ctx, fileParts[0]));
+        if (!node || !isFile(node)) return err(`wordfreq: ${fileParts[0]}: no such file`);
+        text = node.content;
+        from = fileParts[0];
+      } else {
+        return err("usage: wordfreq [-s] [-n N] <file>  ·  … | wordfreq");
+      }
+      const freq = wordFreq(text, flags.has("s"));
+      const total = freq.reduce((s, [, c]) => s + c, 0);
+      if (!total) return [`no words found in ${from}`];
+      const width = String(freq[0][1]).length;
+      const out = [
+        `top ${Math.min(n, freq.length)} of ${freq.length} unique words (${total} total)${flags.has("s") ? " · stop words skipped" : ""}`,
+      ];
+      for (const [w, c] of freq.slice(0, n)) {
+        const bar = "█".repeat(Math.max(1, Math.round((c / freq[0][1]) * 12)));
+        out.push(`  ${String(c).padStart(width)}  ${padCell(w, 14)} ${bar}`);
+      }
+      return out;
     },
   },
   {
