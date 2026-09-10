@@ -10,6 +10,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Bun](https://img.shields.io/badge/Bun-%E2%89%A51.x-f472b6?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh)
 [![Tests](https://img.shields.io/badge/tests-277%2F277_passing-22c55e?style=for-the-badge&logo=checkmarx&logoColor=white)](#-testing)
+[![CI](https://img.shields.io/badge/CI-lint_%26_typecheck-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)](https://github.com/qtjg/quanta-terminal/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/license-MIT-f59e0b?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-8b5cf6?style=for-the-badge)](#-contributing)
 
