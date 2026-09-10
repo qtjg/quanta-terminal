@@ -178,4 +178,74 @@ export const DEV_COMMANDS: CmdDef[] = [
       return out;
     },
   },
+  {
+    name: "cron", cat: "dev", desc: "explain a cron expression + next real run times", usage: "cron <expr>   e.g. cron */15 9-17 * * 1-5",
+    run: (ctx) => {
+      const FIELDS = ["minute", "hour", "day-of-month", "month", "day-of-week"];
+      const RANGES = [60, 24, 31, 12, 7];
+      const expr = ctx.args.join(" ").trim();
+      if (!expr) return err("usage: cron <minute hour dom month dow>");
+      const parts = expr.split(/\s+/);
+      if (parts.length !== 5) return err("cron: needs exactly 5 fields — minute hour day-of-month month day-of-week");
+      const NAMES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+      const DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+      const expand = (field: string, idx: number): number[] | null => {
+        const names = idx === 4 ? DAYS : idx === 3 ? NAMES : null;
+        const resolve = (tok: string): number | null => {
+          const low = tok.toLowerCase();
+          if (names) {
+            const i = names.findIndex((n) => low.startsWith(n));
+            if (i >= 0) return idx === 4 ? i : i + 1;
+          }
+          const n = parseInt(low, 10);
+          return Number.isNaN(n) ? null : n;
+        };
+        const out = new Set<number>();
+        for (const piece of field.split(",")) {
+          const [range, stepStr] = piece.split("/");
+          const step = stepStr ? parseInt(stepStr, 10) : 1;
+          if (!step || step < 1) return null;
+          let lo = 0, hi = RANGES[idx] - 1;
+          if (range !== "*") {
+            const [a, b] = range.split("-");
+            const av = resolve(a), bv = b != null ? resolve(b) : av;
+            if (av == null || bv == null) return null;
+            lo = av; hi = bv;
+          }
+          if (lo > hi || hi > RANGES[idx] - 1) return null;
+          for (let v = lo; v <= hi; v += step) out.add(v);
+        }
+        return [...out].sort((a, b) => a - b);
+      };
+      const sets: number[][] = [];
+      for (let i = 0; i < 5; i++) {
+        const s = expand(parts[i], i);
+        if (!s || !s.length) return err(`cron: invalid ${FIELDS[i]} field '${parts[i]}'`);
+        sets.push(s);
+      }
+      const describe = (vals: number[], idx: number): string => {
+        const all = vals.length === RANGES[idx];
+        if (all) return "*";
+        if (idx === 3 && vals.every((v, i2) => i2 === 0 || v === vals[i2 - 1] + 1)) return vals.map((v) => NAMES[v - 1]).join(" ");
+        if (idx === 4 && vals.every((v, i2) => i2 === 0 || v === vals[i2 - 1] + 1)) return vals.map((v) => DAYS[v]).join(" ");
+        if (vals.length > 8) return `${vals[0]}-${vals[vals.length - 1]} (${vals.length} values)`;
+        return vals.join(" ");
+      };
+      const lines = FIELDS.map((f, i) => `${f.padEnd(13)} ${parts[i].padEnd(10)} → ${describe(sets[i], i)}`);
+      /* next real runs — walk forward minute-by-minute, max 366 days */
+      const next = new Date(ctx.now());
+      next.setSeconds(0, 0);
+      next.setMinutes(next.getMinutes() + 1);
+      const runs: string[] = [];
+      for (let i = 0; i < 525600 && runs.length < 3; i++) {
+        if (sets[0].includes(next.getMinutes()) && sets[1].includes(next.getHours())
+          && sets[3].includes(next.getMonth() + 1)
+          && (sets[4].includes(next.getDay()) || sets[2].includes(next.getDate()))) {
+          runs.push(next.toISOString().replace("T", " ").slice(0, 16) + " UTC");
+        }
+        next.setMinutes(next.getMinutes() + 1);
+      }
+      return ["FIELD         EXPR       → MATCHES", ...lines, "", "next runs:", ...runs.map((r) => `  ${r}`)];
+    },
+  },
 ];
