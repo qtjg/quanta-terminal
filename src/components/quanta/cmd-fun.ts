@@ -700,6 +700,35 @@ export const FUN_COMMANDS: CmdDef[] = [
     },
   },
   {
+    name: "translate", cat: "ai", desc: "AI translation into any language", usage: "translate <lang> <text>  ·  cat file | translate de",
+    run: async (ctx) => {
+      let text = "";
+      let lang = "";
+      if (hasStdin(ctx) && (ctx.stdin ?? "").trim()) {
+        text = ctx.stdin ?? "";
+        lang = ctx.args[0] ?? "";
+      } else if (ctx.args.length >= 2) {
+        lang = ctx.args[0];
+        text = ctx.raw.trim().slice(lang.length).trim();
+      } else {
+        return err("usage: translate <lang> <text>  ·  cat file | translate de");
+      }
+      if (!lang) return err("translate: target language missing — e.g. translate hi <text>");
+      if (!text.trim()) return err("translate: nothing to translate");
+      const res = await askAi(
+        ctx.apiBase,
+        `Translate the following into ${lang}. Output ONLY the translation, nothing else:\n\n${text.slice(0, 3000)}`,
+        {
+          system: "You are a precise translator. Translate faithfully, keep formatting, no commentary.",
+          model: ctx.model,
+        },
+      );
+      bumpStats(ctx, res.ok === true && Boolean(res.text), res.timeMs);
+      if (!res.ok || !res.text) return err(`translate: ${res.error ?? "empty response"}`);
+      return aiFrame([`→ ${lang}`, "", ...res.text.split("\n")], whoServed(res));
+    },
+  },
+  {
     name: "explain", cat: "ai", desc: "AI explains a linux concept", usage: "explain <topic>",
     run: async (ctx) => {
       const topic = ctx.raw.trim();
