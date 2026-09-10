@@ -567,3 +567,25 @@ export function loremIpsum(paragraphs: number): string[] {
   const paragraph = () => Array.from({ length: 3 + rand(4) }, sentence).join(" ");
   return Array.from({ length: Math.max(1, Math.min(paragraphs, 8)) }, paragraph);
 }
+
+/* ---------- v0.6: tab expansion ---------- */
+
+/** expand tabs to spaces at fixed tab stops (classic expand) */
+export function expandTabs(text: string, width = 4): string {
+  const w = Math.max(1, Math.min(width, 16));
+  return text.split("\n").map((line) => {
+    let col = 0;
+    let out = "";
+    for (const ch of line) {
+      if (ch === "\t") {
+        const spaces = w - (col % w);
+        out += " ".repeat(spaces);
+        col += spaces;
+      } else {
+        out += ch;
+        col++;
+      }
+    }
+    return out;
+  }).join("\n");
+}

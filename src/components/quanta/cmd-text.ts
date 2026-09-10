@@ -6,7 +6,7 @@ import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum, expandTabs,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -312,6 +312,28 @@ export const TEXT_COMMANDS: CmdDef[] = [
     run: (ctx) => {
       const n = Math.max(1, Math.min(parseInt(ctx.args[0] ?? "2", 10) || 2, 8));
       return loremIpsum(n).flatMap((p) => [p, ""]).slice(0, -1);
+    },
+  },
+  {
+    name: "expand", cat: "text", desc: "expand tabs to spaces (tab stops)", usage: "expand [-w width] <file>  ·  … | expand",
+    run: (ctx) => {
+      const { flags, pos } = parseFlags(ctx.args);
+      let text = "";
+      let from = "";
+      if (hasStdin(ctx)) {
+        text = ctx.stdin ?? "";
+        from = "(stdin)";
+      } else if (pos.length) {
+        const node = ctx.fs.get(absPath(ctx, pos[0]));
+        if (!node || !isFile(node)) return err(`expand: ${pos[0]}: no such file`);
+        text = node.content;
+        from = pos[0];
+      } else {
+        return err("usage: expand [-w width] <file>  ·  … | expand");
+      }
+      const width = flags.has("w") && pos.length && /^\d+$/.test(pos[0]) ? parseInt(pos[0], 10) : 4;
+      const out = expandTabs(text, width);
+      return [`${from} → tabs expanded (width ${width})`, ...out.split("\n")];
     },
   },
   {
