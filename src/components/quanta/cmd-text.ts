@@ -6,7 +6,7 @@ import { isFile } from "./fs";
 import {
   parseFlags, regexLines, caseTransform, CASE_MODES, CaseMode, asciiTable,
   urlInfo, diffText, diffStat, b64encode, b64decode, shaHex, uuidV4,
-  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum, expandTabs, wrapText,
+  calcEval, convert, padCell, jsonParseChecked, jsonType, jsonGet, slugify, wordFreq, alignLine, loremIpsum, expandTabs, wrapText, shuffled,
 } from "./text-tools";
 
 /** load file content or treat trailing string arg as inline subject */
@@ -358,6 +358,31 @@ export const TEXT_COMMANDS: CmdDef[] = [
       }
       const out = wrapText(text, width);
       return [`${from} → wrapped at ${width}`, ...out];
+    },
+  },
+  {
+    name: "shuf", cat: "text", desc: "shuffle lines (file, pipe or list)", usage: "shuf <file>  ·  … | shuf  ·  shuf -e a b c",
+    run: (ctx) => {
+      const { flags, pos } = parseFlags(ctx.args);
+      let lines: string[];
+      let from = "";
+      if (flags.has("e")) {
+        if (pos.length < 2) return err("shuf -e needs 2+ items");
+        lines = pos;
+        from = "(items)";
+      } else if (hasStdin(ctx)) {
+        lines = stdinLines(ctx);
+        from = "(stdin)";
+      } else if (pos.length) {
+        const node = ctx.fs.get(absPath(ctx, pos[0]));
+        if (!node || !isFile(node)) return err(`shuf: ${pos[0]}: no such file`);
+        lines = contentLines(node.content);
+        from = pos[0];
+      } else {
+        return err("usage: shuf <file>  ·  … | shuf  ·  shuf -e a b c");
+      }
+      if (!lines.length) return [`no lines to shuffle in ${from}`];
+      return [`${from}: ${lines.length} line(s) shuffled`, ...shuffled(lines)];
     },
   },
   {
