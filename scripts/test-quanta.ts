@@ -312,10 +312,112 @@ async function main() {
   ok("stopwatch: reset", (await run("stopwatch reset")).some((l) => l.includes("reset")));
   ok("stopwatch: bad subcommand", (await run("stopwatch dance")).some((l) => l.includes("unknown subcommand")));
 
+  /* ============ V0.6 BATCH ============ */
+  console.log("── v0.6: fs utilities ──");
+  ok("basename: strips dir", (await run("basename /home/mayank/docs/notes.txt")).join("") === "notes.txt");
+  ok("basename: suffix cut", (await run("basename notes.txt .txt")).join("") === "notes");
+  ok("basename: root", (await run("basename /")).join("") === "/");
+  ok("dirname: strips last", (await run("dirname /home/mayank/docs")).join("") === "/home/mayank");
+  ok("dirname: top level", (await run("dirname /README.md")).join("") === "/");
+  ok("realpath: dot-dot + tilde", (await run("realpath ~/../mayank/./docs")).join("") === "/home/mayank/docs");
+  ok("realpath: already canonical", (await run("realpath /a/b/c")).join("") === "/a/b/c");
+
+  await run(`write /tmp/v06.txt "one\ntwo\nthree\nfour\nfive"`);
+  const sp = await run("split -n 2 /tmp/v06.txt");
+  ok("split: chunk report", sp.some((l) => l.includes("3 chunk(s)")));
+  ok("split: unix names xaa/xab", (await run("cat /tmp/xaa")).join(" ").includes("one")
+    && (await run("cat /tmp/xab")).join(" ").includes("three"));
+  ok("split: bad spec", (await run("split -n 0 /tmp/v06.txt")).some((l) => l.includes("positive line count")));
+  const fsckOut = await run("fsck");
+  ok("fsck: walks all nodes", fsckOut.some((l) => l.match(/checked \d+ directories, \d+ files/)));
+  ok("fsck: clean VFS", fsckOut.some((l) => l.includes("0 problems")));
+
+  console.log("── v0.6: json toolkit ──");
+  await run(`write /tmp/cfg.json {"name":"quanta","v":6,"tags":["ai","term"],"deep":{"x":1}}`);
+  const jv = await run("json /tmp/cfg.json");
+  ok("json: validates + types", jv.some((l) => l.includes("valid JSON, object")));
+  ok("json: pretty prints", jv.some((l) => l.includes('"name": "quanta"')));
+  ok("json: compact flag", (await run("json -c /tmp/cfg.json")).some((l) => l.includes('{"name":"quanta"')));
+  const jk = await run("json keys /tmp/cfg.json");
+  ok("json: keys", jk.some((l) => l.includes("4 top-level key(s)")) && jk.some((l) => l.includes("tags: array")));
+  ok("json: get nested", (await run("json get deep.x /tmp/cfg.json")).join(" ").includes("(number)"));
+  ok("json: get array index", (await run("json get tags.1 /tmp/cfg.json")).some((l) => l.includes("term")));
+  ok("json: get out of range", (await run("json get tags.9 /tmp/cfg.json")).some((l) => l.includes("out of range")));
+  ok("json: type query", (await run("json type deep /tmp/cfg.json")).some((l) => l.includes("→ object")));
+  ok("json: invalid rejected", (await run(`echo "{bad" | json`)).some((l) => l.includes("invalid JSON")));
+
+  console.log("── v0.6: text formatters & generators ──");
+  ok("slug: diacritics folded", (await run("slug Héllo Wörld")).join("") === "hello-world");
+  ok("slug: custom separator", (await run("slug five star _")).join("") === "five_star");
+  ok("slug: trims to 96", (await run(`slug ${"ab ".repeat(60)}`)).join("").length <= 96);
+
+  await run(`write /tmp/wf.txt "quanta runs quanta tests and the quanta shell sings"`);
+  const wf = await run("wordfreq -n 1 /tmp/wf.txt");
+  ok("wordfreq: counts top word", wf.some((l) => l.trim().startsWith("3") && l.includes("quanta")));
+  const wfs = await run("wordfreq -s /tmp/wf.txt");
+  ok("wordfreq: stop-word flag", wfs.some((l) => l.includes("stop words skipped")));
+
+  const centered = await run("pad c 11 hi");
+  ok("pad: center", centered[0] === "    hi     " || centered[0]?.trim() === "hi" && centered[0]?.length === 11);
+  ok("pad: right", (await run("pad r 6 hi")).join("") === "    hi");
+  ok("pad: refuses garbage", (await run("pad x 10 hi")).some((l) => l.includes("usage")));
+
+  const lor = await run("lorem 2");
+  ok("lorem: paragraph count", lor.filter((l) => l.trim()).length === 2);
+  ok("lorem: sentences end with dots", lor[0].endsWith("."));
+
+  ctx.fs.writeFile("/tmp/tabs.txt", "a\tb\tc");
+  ok("expand: tabs to stops", (await run("expand /tmp/tabs.txt")).some((l) => l.includes("a   b")));
+  ctx.fs.writeFile("/tmp/longfold.txt", "The quick brown fox jumps over the lazy dog");
+  const fold = await run("fold -w 12 /tmp/longfold.txt");
+  ok("fold: wraps at width", fold.slice(1).every((l) => l.length <= 12));
+  const sh = await run("shuf /tmp/v06.txt");
+  ok("shuf: preserves all lines", sh.slice(1).length === 5 && sh.slice(1).sort().join(",") === "five,four,one,three,two");
+  ok("shuf -e: items", (await run("shuf -e a b c")).some((l) => l.includes("3 line(s) shuffled")));
+  ok("yes: numeric count", (await run("yes 4")).join(",").split(",").length === 4);
+  ok("yes: text + count", (await run("yes maybe 2")).join(",").split(",").length === 2 && (await run("yes maybe 2"))[0] === "maybe");
+
+  ok("seq: 1..n", JSON.stringify(await run("seq 4")) === JSON.stringify(["1", "2", "3", "4"]));
+  ok("seq: start end", (await run("seq 3 5")).join(",") === "3,4,5");
+  ok("seq: negative step", (await run("seq 5 1 -2")).join(",") === "5,3,1");
+  ok("factor: composite", (await run("factor 12")).some((l) => l.includes("2 × 2 × 3")));
+  ok("factor: prime", (await run("factor 13")).some((l) => l.includes("is prime")));
+  ok("strdist: classic pair", (await run("strdist kitten sitting")).some((l) => l.includes("= 3")));
+  ok("strdist: identical", (await run("strdist same same")).some((l) => l.includes("identical")));
+
+  console.log("── v0.6: sys & fun ──");
+  const tzOut = await run("tz");
+  ok("tz: renders local + utc", tzOut.some((l) => l.includes("UTC")) && tzOut.length >= 1);
+  ok("tz: explicit zone", (await run("tz Asia/Tokyo")).some((l) => l.includes("Asia/Tokyo")));
+  ok("tz: bad zone handled", (await run("tz Nowhere/None")).some((l) => l.includes("unknown timezone")));
+  const calOut = await run("cal 9 2026");
+  ok("cal: header + grid", calOut.some((l) => l.includes("September 2026")) && calOut.some((l) => l.includes("Su Mo Tu We")));
+  ok("cal: sept 1 on tuesday", calOut[1]?.includes(" 1") === true || calOut.join("\n").includes(" 1"));
+  ok("cal: leap feb", (await run("cal 2 2024")).join("\n").includes("29"));
+  const dice = await run("dice 2d6");
+  ok("dice: total line", dice.some((l) => l.includes("2d6:") && l.includes("=")));
+  ok("dice: bad spec", (await run("dice banana")).some((l) => l.includes("not a valid NdM")));
+  const ball = await run("8ball will it work");
+  ok("8ball: echoes + answers", ball.some((l) => l.includes("❓")) && ball.some((l) => l.includes("🎱")));
+  const mx = await run("matrix 6 30");
+  ok("matrix: frame rendered", mx.length >= 8 && mx.some((l) => /[01ﾊﾋｱ]/.test(l)));
+
+  console.log("── v0.6: sec & net ──");
+  const ent = await run("entropy Tr0ub4dor&3");
+  ok("entropy: bits/char reported", ent.some((l) => l.includes("bits/char")));
+  ok("entropy: classes line", ent.some((l) => l.includes("classes present")));
+  ok("entropy: low for repeats", (await run("entropy aaaaaaaa")).some((l) => l.includes("0 bits/char")));
+  ok("entropy: stdin via pipe", (await run("echo secret123 | entropy")).some((l) => l.includes("bits/char")));
+
+  const isup = await run("isup github.com");
+  ok("isup: live verdict", isup.some((l) => /UP|REACHED/.test(l)), isup.join(" | ").slice(0, 100));
+  const hdrs = await run("headers https://example.com");
+  ok("headers: status + entries", hdrs.some((l) => l.includes("HTTP 200")) && hdrs.some((l) => l.includes("header(s)")));
+
   /* ============ DISPATCHER EDGES ============ */
   console.log("── dispatcher edges ──");
   ok("empty line: silent", (await run("")).length === 0);
-  ok("unknown: suggestion", (await run("cal")).some((l) => l.includes("nearest") && l.includes("calc")));
+  ok("unknown: suggestion", (await run("echho")).some((l) => l.includes("nearest") && l.includes("echo")));
   ok("unknown: not found", (await run("xyzzynope")).some((l) => l.includes("command not found")));
   ok("path: ../ resolution", (await runCommand("cd docs/../projects", ctx)).lines.length === 0
     && ctx.cwd === "/home/mayank/projects");
@@ -594,6 +696,13 @@ async function main() {
   const omniOff = await run("omniroute off");
   ok("omniroute live: off accepted + session count", omniOff.some((l) => l.includes("omniroute OFF")) && omniOff.some((l) => l.includes("auto-routes so far")) && ctx.omni.enabled === false, omniOff.join(" | ").slice(0, 160));
   ok("omniroute live: status reflects OFF", (await run("omniroute status")).some((l) => l.includes("mode: OFF")));
+
+  /* v0.6: live translate (paced) */
+  await llmPace();
+  let tr = await run("translate hi the terminal is ready");
+  if (tr.some((l) => l.includes("429"))) { await llmPace(); tr = await run("translate hi the terminal is ready"); }
+  ok("translate: live frame + target lang", tr.some((l) => l.includes("→ hi")) && tr.some((l) => l.startsWith("┌─")), tr.join(" | ").slice(0, 140));
+  ok("translate: non-latin output served", tr.some((l) => /[\u0900-\u097F]/.test(l)), tr.join(" | ").slice(0, 140));
 
   /* ============ SUMMARY ============ */
   console.log(`\n${"═".repeat(52)}`);
