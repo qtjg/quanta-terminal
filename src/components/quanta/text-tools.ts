@@ -626,6 +626,27 @@ export const EIGHT_BALL = [
   "Outlook not so good.", "Very doubtful.",
 ] as const;
 
+/* ---------- v0.6: digital rain ---------- */
+
+const RAIN_GLYPHS = "01ﾊﾋﾎｦｱｳｴｵｶｷｹｺｻｼｽｾｿﬀﬁﬂ".split("");
+
+/** one frozen frame of matrix-style rain (columns of falling glyphs) */
+export function matrixFrame(rows = 12, cols = 46): string[] {
+  const r = Math.min(Math.max(rows, 4), 20);
+  const c = Math.min(Math.max(cols, 10), 80);
+  const grid: string[][] = Array.from({ length: r }, () => Array.from({ length: c }, () => " "));
+  const trails = Math.max(4, Math.floor(c / 8));
+  for (let t = 0; t < trails; t++) {
+    const x = Math.floor(Math.random() * c);
+    let y = Math.floor(Math.random() * r);
+    const len = 3 + Math.floor(Math.random() * (r - 2));
+    for (let k = 0; k < len && y >= 0; k++, y--) {
+      grid[y][x] = RAIN_GLYPHS[Math.floor(Math.random() * RAIN_GLYPHS.length)];
+    }
+  }
+  return grid.map((line) => line.join(""));
+}
+
 /* ---------- v0.6: prime factorization ---------- */
 
 /** trial division; returns prime factors (with repetition), [] for n < 2 */

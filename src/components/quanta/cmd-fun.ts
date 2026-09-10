@@ -1,7 +1,7 @@
 /* QUANTA fun + AI commands: banner cowsay fortune stopwatch ai models weather ipinfo */
 
 import { CmdCtx, CmdDef, err, hasStdin, swElapsed } from "./core";
-import { bannerText, cowsay, FORTUNES, fmtElapsed, rollDice, EIGHT_BALL } from "./text-tools";
+import { bannerText, cowsay, FORTUNES, fmtElapsed, rollDice, EIGHT_BALL, matrixFrame } from "./text-tools";
 import { fetchViaApi } from "./cmd-sys";
 import { classifyTask, pickRoute, ROUTE_PREF, TaskType } from "../../lib/quanta-omniroute";
 
@@ -234,6 +234,18 @@ export const FUN_COMMANDS: CmdDef[] = [
       return [
         `❓ ${q.endsWith("?") ? q : q + "?"}`,
         `🎱 ${answer}`,
+      ];
+    },
+  },
+  {
+    name: "matrix", cat: "fun", desc: "a frozen frame of digital rain", usage: "matrix [rows] [cols]",
+    run: (ctx) => {
+      const rows = parseInt(ctx.args[0] ?? "", 10) || 12;
+      const cols = parseInt(ctx.args[1] ?? "", 10) || 46;
+      return [
+        "wake up — the terminal has you…",
+        ...matrixFrame(rows, cols),
+        "(follow the white rabbit — rerun for a new frame)",
       ];
     },
   },
