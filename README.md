@@ -4,7 +4,7 @@
 
 ### *The AI-Native Linux Terminal — in your browser*
 
-**85 real commands · multi-provider AI routing · security toolkit · persistent virtual filesystem**
+**117 real commands · multi-provider AI routing · security toolkit · developer tools · persistent virtual filesystem**
 
 [![Next.js](https://img.shields.io/badge/Next.js-App_Router-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -27,7 +27,7 @@
 - [What is QUANTA?](#-what-is-quanta)
 - [Feature Matrix](#-feature-matrix)
 - [Quick Start](#-quick-start)
-- [The Command Catalog — 85 Commands](#-the-command-catalog--85-commands)
+- [The Command Catalog — 117 Commands](#-the-command-catalog--117-commands)
 - [AI Engine & OmniRoute](#-ai-engine--omniroute)
 - [Security Toolkit](#-security-toolkit)
 - [Real Network](#-real-network)
@@ -67,7 +67,7 @@ The root route **is** the terminal. One product, zero distraction.
 
 | | Feature | Status |
 |:---:|---|:---:|
-| 🖥️ | **85 slash commands** — core, filesystem, text, sys, net, AI, security, fun | ✅ |
+| 🖥️ | **117 slash commands** — core, filesystem, text, sys, net, AI, security, dev, fun | ✅ |
 | 🧠 | **Live AI engine** — real LLM round-trips, multi-provider, pipes, audit trail | ✅ |
 | 🛣️ | **OmniRoute** — task classification → best free model → automatic fallback chain | ✅ |
 | 🔐 | **Security toolkit** — JWT audit, recon, hashing, ciphers, password entropy | ✅ |
@@ -102,10 +102,10 @@ theme matrix        → there is no spoon
 
 > **Zero-config AI:** with no API keys at all, the built-in gateway lane still works. Add any provider key (`.env`) and OmniRoute immediately unlocks that provider's free-model catalog.
 
-## 📚 The Command Catalog — 85 Commands
+## 📚 The Command Catalog — 117 Commands
 
 <details open>
-<summary><b>🧠 AI — 10 commands</b> (the headliner)</summary>
+<summary><b>🧠 AI — 11 commands</b> (the headliner)</summary>
 
 | Command | What it really does |
 |---|---|
@@ -113,6 +113,7 @@ theme matrix        → there is no spoon
 | `q <natural language>` | Natural language → command translation → **executes it** |
 | `explain <concept>` | AI explains a Linux/Unix concept in terminal context |
 | `summarize <file>` | AI summarizes a file or piped input |
+| `translate <lang>` | AI translation into any language — pipe-aware (`cat file \| translate de`) |
 | `model [use <id>]` | Show or switch the active AI model |
 | `models` | Free-model catalog across **all** providers |
 | `providers` | Provider status, key presence, free tiers |
@@ -122,60 +123,104 @@ theme matrix        → there is no spoon
 
 </details>
 
-<details>
+<details open>
 <summary><b>🖥️ Core — 19 commands</b></summary>
 
 | Command | | Command | | Command | |
 |---|---|---|---|---|---|
-| `alias` | create/list aliases | `clear` | wipe screen | `date` | date & time |
-| `echo` | print (expands $VAR) | `env` | environment | `exit` | lock terminal |
-| `export` | set variable | `help` | command index | `history` | command history |
-| `hostname` | machine name | `man` | manual pages | `motd` | message of the day |
-| `sudo` | (honest sandbox 🙂) | `theme` | switch theme | `unalias` | drop alias |
-| `uname` | system info | `uptime` | session load | `which` | locate command |
-| `whoami` | current user | | | | |
+| `alias` | list or create aliases | `clear` | clear the terminal screen | `date` | current date & time |
+| `echo` | print text (expands $VAR) | `env` | print environment variables | `exit` | lock the terminal (reload to boot again) |
+| `export` | set an environment variable | `help` | show the full command index | `history` | show command history |
+| `hostname` | print machine hostname | `man` | manual page for a command | `motd` | message of the day |
+| `sudo` | elevated run (honestly: same sandbox) | `theme` | list or switch terminal theme | `unalias` | remove an alias |
+| `uname` | system information | `uptime` | session uptime + load | `which` | locate a command |
+| `whoami` | print current user |  |  |  |  |
 
 </details>
 
 <details>
-<summary><b>💾 Filesystem — 24 commands</b> (persistent VFS)</summary>
+<summary><b>📁 Filesystem — 29 commands</b></summary>
 
-`cat` · `cd` · `chmod` · `cp` · `df` · `du` · `find` · `head` · `ls` · `mkdir` · `mv` · `nl` · `pwd` · `rev` · `rm` · `rmdir` · `sort` · `stat` · `tail` · `touch` · `tree` · `uniq` · `wc` · `write`
+| Command | | Command | | Command | |
+|---|---|---|---|---|---|
+| `basename` | strip directory from path | `cat` | print file contents | `cd` | change directory |
+| `chmod` | change file mode (tracked in VFS) | `cp` | copy file | `df` | filesystem usage (sandbox volume) |
+| `dirname` | strip last component from path | `du` | disk usage of a path | `find` | find files by name (-name substring) |
+| `fsck` | VFS integrity check — walks every node | `head` | first N lines (file or pipe) | `ls` | list directory contents |
+| `mkdir` | create directory (-p for parents) | `mv` | move / rename file | `nl` | number all lines (file or pipe) |
+| `pwd` | print working directory | `realpath` | canonical absolute path (resolves . .. ~) | `rev` | reverse each line's characters (file or pipe) |
+| `rm` | remove file or directory (-r recursive, -f force) | `rmdir` | remove an empty directory | `sort` | sort lines (file or pipe) |
+| `split` | split a file into N-line chunks (xaa, xab, …) | `stat` | file metadata | `tail` | last N lines (file or pipe) |
+| `touch` | create an empty file / bump mtime | `tree` | recursive directory tree | `uniq` | drop consecutive duplicate lines (file or pipe) |
+| `wc` | count lines/words/chars (file or pipe) | `write` | write text into a file (VFS) |  |  |
 
-Everything survives a full browser reload — the VFS is persisted client-side with automatic legacy-key migration.
+</details>
+
+<details open>
+<summary><b>✂️ Text & Data — 24 commands</b></summary>
+
+| Command | | Command | | Command | |
+|---|---|---|---|---|---|
+| `ascii` | ascii/unicode code table | `base64` | base64 encode/decode | `calc` | safe calculator (no eval) |
+| `case` | 11 case transforms | `diff` | line diff of two files (LCS) | `expand` | expand tabs to spaces (tab stops) |
+| `factor` | prime factorization of an integer | `fold` | wrap each line at width | `grep` | search text (file, pipe or inline) |
+| `hash` | sha-1/256/384/512 of text | `json` | JSON toolkit — validate, pretty, keys, get, type | `lorem` | lorem ipsum filler text generator |
+| `pad` | align text left/right/center to width | `rand` | random int / pick from list | `regex` | regex tester: matches + groups |
+| `seq` | print a number sequence | `shuf` | shuffle lines (file, pipe or list) | `slug` | slugify text → URL-safe identifier |
+| `strdist` | Levenshtein edit distance + similarity | `units` | unit conversion | `url` | url parser + enc/dec |
+| `uuid` | generate uuid v4 | `wordfreq` | word frequency table (-s skips stop words) | `yes` | repeat a string n times (bounded) |
 
 </details>
 
 <details>
-<summary><b>✂️ Text — 12 commands</b></summary>
+<summary><b>⚙️ System — 9 commands</b></summary>
 
-`ascii` · `base64` · `calc` (no eval) · `case` (11 transforms) · `diff` (LCS) · `grep` · `hash` (SHA-1/256/384/512) · `rand` · `regex` · `units` · `url` · `uuid`
-
-</details>
-
-<details>
-<summary><b>⚙️ System — 7 commands</b></summary>
-
-`free` · `kill` · `lscpu` · `neofetch` · `netstat` · `ps` · `top`
+| Command | | Command | | Command | |
+|---|---|---|---|---|---|
+| `cal` | calendar for a month (current or given) | `free` | memory overview | `kill` | signal a process by pid |
+| `lscpu` | cpu info of this device | `neofetch` | system summary card | `netstat` | sandbox connection table |
+| `ps` | process snapshot (quanta services) | `top` | one-shot system dashboard | `tz` | current time across timezones (real Intl) |
 
 </details>
 
 <details>
-<summary><b>🌐 Network — 4 commands</b> (3 real + 1 honest sim)</summary>
+<summary><b>🌐 Network (real) — 6 commands</b></summary>
 
-| Command | Real? |
-|---|---|
-| `curl <url>` | ✅ REAL http request via server-side route (SSRF-guarded) |
-| `ipinfo` | ✅ REAL egress-IP network/geo intelligence |
-| `weather <city>` | ✅ REAL weather via wttr.in — no API key |
-| `ping <host>` | ⚡ simulated RTT (browsers can't ICMP — it says so) |
+| Command | | Command | | Command | |
+|---|---|---|---|---|---|
+| `curl` | REAL http request via quanta backend | `headers` | REAL HTTP response headers for a URL | `ipinfo` | REAL network/geo info of this server's egress IP |
+| `isup` | REAL site availability check (status + latency) | `ping` | latency probe (simulated RTT) | `weather` | REAL weather via wttr.in (no key) |
 
 </details>
 
 <details>
-<summary><b>🎮 Fun — 4 commands</b></summary>
+<summary><b>🎉 Fun & Tools — 7 commands</b></summary>
 
-`banner` · `cowsay` · `fortune` · `stopwatch`
+| Command | | Command | | Command | |
+|---|---|---|---|---|---|
+| `8ball` | the magic 8-ball answers | `banner` | big block-letter banner | `cowsay` | the cow says it |
+| `dice` | roll NdM dice — total + individual rolls | `fortune` | random dev wisdom | `matrix` | a frozen frame of digital rain |
+| `stopwatch` | live stopwatch |  |  |  |  |
+
+</details>
+
+<details>
+<summary><b>🔐 Security Toolkit — 6 commands</b></summary>
+
+| Command | | Command | | Command | |
+|---|---|---|---|---|---|
+| `cipher` | classic cipher toolbox (rot13/caesar/hex/bin) | `crackme` | hash cracking: challenge game + real dictionary attack | `entropy` | Shannon entropy analysis of text/passwords |
+| `jwt` | decode & audit a JSON web token | `passwd` | strong password generator with entropy meter | `recon` | REAL domain recon: DNS + RDAP whois + HTTP header audit |
+
+</details>
+
+<details>
+<summary><b>🛠️ Dev Tools — 6 commands</b></summary>
+
+| Command | | Command | | Command | |
+|---|---|---|---|---|---|
+| `pw` | crypto-grade password generator (ambiguous chars excluded) | `base` | convert bin/oct/dec/hex (`base 10:16 255`) | `ts` | epoch ↔ date, both directions |
+| `color` | hex ↔ rgb ↔ hsl + WCAG contrast grading | `csv` | RFC-4180 parser → table or JSON (quoted fields) | `cron` | cron expression explainer + next real run times |
 
 </details>
 
