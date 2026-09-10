@@ -42,8 +42,10 @@ export const DEV_COMMANDS: CmdDef[] = [
       const value = ctx.args[1];
       if (!value) return err("usage: base <from:to> <value>");
       const clean = value.toLowerCase().replace(/^0[box]/, "");
+      if (clean === "" || ![...clean].every((ch) => !Number.isNaN(parseInt(ch, from)))) {
+        return err(`base: '${value}' is not a valid base-${from} number`);
+      }
       const n = parseInt(clean, from);
-      if (Number.isNaN(n)) return err(`base: '${value}' is not a valid base-${from} number`);
       const names: Record<number, string> = { 2: "bin", 8: "oct", 10: "dec", 16: "hex" };
       const prefix = to === 16 ? "0x" : to === 2 ? "0b" : to === 8 ? "0o" : "";
       return [`${names[from]} ${value} → ${names[to]} ${prefix}${n.toString(to)}`];
