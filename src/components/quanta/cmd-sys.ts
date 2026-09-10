@@ -172,6 +172,41 @@ export const SYS_COMMANDS: CmdDef[] = [
     },
   },
   {
+    name: "cal", cat: "sys", desc: "calendar for a month (current or given)", usage: "cal [month 1-12] [year]",
+    run: (ctx) => {
+      const now = ctx.now();
+      let year = now.getFullYear();
+      let month = now.getMonth() + 1; // 1-12
+      if (ctx.args.length >= 2) {
+        const m = parseInt(ctx.args[0], 10), y = parseInt(ctx.args[1], 10);
+        if (!m || m < 1 || m > 12 || !y || y < 1 || y > 9999) return err("usage: cal [month 1-12] [year]");
+        [month, year] = [m, y];
+      } else if (ctx.args.length === 1) {
+        const m = parseInt(ctx.args[0], 10);
+        if (!m || m < 1 || m > 12) return err("usage: cal [month 1-12] [year]");
+        month = m;
+      }
+      const title = new Date(year, month - 1, 1).toLocaleString("en", { month: "long", year: "numeric" });
+      const days = new Date(year, month, 0).getDate();
+      // weekday of the 1st (0=Sun..6=Sat)
+      const firstDow = new Date(year, month - 1, 1).getDay();
+      const lines = [
+        title.padStart(Math.floor((20 + title.length) / 2)).padEnd(20),
+        "Su Mo Tu We Th Fr Sa",
+      ];
+      let row = "   ".repeat(firstDow);
+      for (let d = 1; d <= days; d++) {
+        row += String(d).padStart(2) + " ";
+        if ((firstDow + d) % 7 === 0) { lines.push(row.trimEnd()); row = ""; }
+      }
+      if (row) lines.push(row.trimEnd());
+      if (month === now.getMonth() + 1 && year === now.getFullYear()) {
+        lines.push("", `today: ${now.toLocaleDateString("en-GB")}`);
+      }
+      return lines;
+    },
+  },
+  {
     name: "neofetch", cat: "sys", desc: "system summary card",
     run: (ctx) => {
       const { files, bytes } = ctx.fs.countAll();
