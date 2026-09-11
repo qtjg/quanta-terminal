@@ -39,6 +39,8 @@
 - [Contributing](#-contributing)
 - [License](#-license)
 
+**Project docs:** [Architecture deep-dive](docs/ARCHITECTURE.md) · [Development guide](docs/DEVELOPMENT.md) · [FAQ](docs/FAQ.md) · [Command reference](docs/COMMANDS.md)
+
 ---
 
 ## 🧊 What is QUANTA?
