@@ -36,6 +36,12 @@
  * /api/rizz/fetch endpoint (same one the Android app uses), cached +
  * time-boxed so Auto-write stays fast. Brain v4 (server-side) now also
  * hard-requires answering the tweet's actual ask.
+ * v0.11.0 — BIG BRAIN: the 🧠 drawer is now 4 fields — 👤 Who I am (600),
+ * 🗣 How I talk (paste your real replies — style gets mirrored), 🏆 Flex
+ * zone (true wins it may drop when invited), 🚫 Never say (personal hard
+ * bans). Stored as rizzBrain (sync), legacy rizzBio auto-migrates into
+ * "Who I am". Server renders ABOUT + FLEX ZONE + VOICE MATCH + HARD NO
+ * LIST — so replies act like the user, not a generic ghostwriter.
  */
 (() => {
   // Version-aware mount guard. Old builds used a plain "loaded" flag —
@@ -53,7 +59,7 @@
   //      actually exists — a stripped/absent root always remounts;
   //   2) background.js deletes window.__rizzVer when it strips, so any
   //    future version drift can never strand the page bubble-less again.
-  const RR_VER = "0.10.2";
+  const RR_VER = "0.11.0";
   const existingRoot = document.getElementById("rr-root");
   if (
     window.__rizzVer === RR_VER &&
@@ -113,7 +119,8 @@
     detailed: "📝 Detailed",
   };
   const HISTORY_KEY = "rizzHistory";
-  const BIO_KEY = "rizzBio";
+  const BIO_KEY = "rizzBio"; // legacy single-line bio (migrated into Big Brain)
+  const BRAIN_KEY = "rizzBrain"; // v0.11.0 — Big Brain {about, voice, flex, never}
   const AGENT_ID_KEY = "rizzAgentId";
   const AGENT_CUSTOM_KEY = "rizzAgentCustom";
   const VOICE_KEY = "rizzVoice"; // v0.8.2 — user's kept replies (voice memory)
@@ -199,6 +206,10 @@
     tone: "witty",
     length: "normal",
     bio: "",
+    // v0.11.0 BIG BRAIN — everything that makes replies sound like HIM:
+    // about = who I am (truth zone), voice = how I talk (style samples),
+    // flex = true wins that may be woven in, never = personal hard bans.
+    brain: { about: "", voice: "", flex: "", never: "" },
     agentId: "reply",
     agentCustom: "",
     history: [],
@@ -214,15 +225,45 @@
   try {
     if (chrome?.storage?.sync) {
       chrome.storage.sync.get(
-        ["rizzApiBase", BIO_KEY, AGENT_ID_KEY, AGENT_CUSTOM_KEY],
+        ["rizzApiBase", BIO_KEY, BRAIN_KEY, AGENT_ID_KEY, AGENT_CUSTOM_KEY],
         (r) => {
           if (r && typeof r.rizzApiBase === "string" && r.rizzApiBase.trim()) {
             apiBase = normalizeBase(r.rizzApiBase);
           }
-          if (r && typeof r[BIO_KEY] === "string" && r[BIO_KEY].trim()) {
-            state.bio = r[BIO_KEY].trim().slice(0, 300);
-            const bioBtn = root.querySelector(".rr-biobtn");
-            if (bioBtn) bioBtn.classList.add("rr-has-bio");
+          // v0.11.0 BIG BRAIN load + legacy bio migration: the old 300-char
+          // rizzBio becomes the "Who I am" field the first time Big Brain
+          // runs; rizzBio stays on disk (rollback-safe) but is no longer
+          // written after this point.
+          let brainLoaded = false;
+          if (r && r[BRAIN_KEY] && typeof r[BRAIN_KEY] === "object") {
+            const b = r[BRAIN_KEY];
+            state.brain = {
+              about:
+                typeof b.about === "string" ? b.about.slice(0, 600) : "",
+              voice:
+                typeof b.voice === "string" ? b.voice.slice(0, 800) : "",
+              flex:
+                typeof b.flex === "string" ? b.flex.slice(0, 400) : "",
+              never:
+                typeof b.never === "string" ? b.never.slice(0, 300) : "",
+            };
+            brainLoaded = true;
+          }
+          if (
+            !brainLoaded &&
+            r &&
+            typeof r[BIO_KEY] === "string" &&
+            r[BIO_KEY].trim()
+          ) {
+            state.brain.about = r[BIO_KEY].trim().slice(0, 600);
+          }
+          state.bio = state.brain.about;
+          const bioBtn = root.querySelector(".rr-biobtn");
+          if (bioBtn) {
+            bioBtn.classList.toggle(
+              "rr-has-bio",
+              Object.values(state.brain).some((v) => v && v.trim())
+            );
           }
           if (
             r &&
@@ -616,17 +657,24 @@
       <div class="rr-body">
         <p class="rr-target" style="display:none"></p>
         <div class="rr-tools">
-          <button class="rr-mini rr-biobtn" title="Tell the Brain what you actually build — replies can flex it truthfully">🧠 My bio</button>
+          <button class="rr-mini rr-biobtn" title="Big Brain — everything that makes replies sound like YOU: who you are, how you talk, your real wins, and your personal no-go list">🧠 Big Brain</button>
           <button class="rr-mini rr-histbtn" title="Your last generations">🕘 History</button>
           <button class="rr-mini rr-vaultbtn" title="⭐ Vault — replies you starred, kept until YOU remove them">⭐ Vault<span class="rr-vbadge"></span></button>
           <button class="rr-mini rr-queuebtn" title="Batch queue — park tweets while you scroll, work them one by one">📋 Queue<span class="rr-qbadge"></span></button>
         </div>
         <div class="rr-biobox" style="display:none">
-          <p class="rr-biohint">What do you actually build? Saved locally on your machine. The Brain may use it in first person — so replies stay truthful, never invented.</p>
-          <textarea class="rr-biota" rows="2" maxlength="300" placeholder="e.g. building a fitness app for busy devs"></textarea>
+          <p class="rr-biohint">Big Brain — everything that makes replies sound like YOU. Saved on your machine. Facts get used in first person (truthfully, never invented); your voice gets mirrored, not copied.</p>
+          <p class="rr-brainlabel">👤 Who I am <span class="rr-braincount" data-count="about"></span></p>
+          <textarea class="rr-biota" data-brain="about" rows="2" maxlength="600" placeholder="Who are you, what do you do, what do you care about? e.g. 22, building an AI reply tool, gym at 6am, blunt, allergic to corporate talk"></textarea>
+          <p class="rr-brainlabel">🗣 How I talk <span class="rr-braincount" data-count="voice"></span></p>
+          <textarea class="rr-biota" data-brain="voice" rows="3" maxlength="800" placeholder="Paste 3–5 of your real replies or posts — the Brain mirrors your rhythm, slang, capitalization and emoji habits"></textarea>
+          <p class="rr-brainlabel">🏆 Flex zone <span class="rr-braincount" data-count="flex"></span></p>
+          <textarea class="rr-biota" data-brain="flex" rows="2" maxlength="400" placeholder="Your TRUE wins it may drop when a tweet invites it — shipped X, grew Y to 10k, won Z. Never invented, max one per reply"></textarea>
+          <p class="rr-brainlabel">🚫 Never say <span class="rr-braincount" data-count="never"></span></p>
+          <textarea class="rr-biota" data-brain="never" rows="2" maxlength="300" placeholder="Your personal bans — words, phrases or claims to avoid: e.g. never say 'grind', no '🚀', never claim revenue numbers"></textarea>
           <div class="rr-bioactions">
-            <button class="rr-mini rr-biosave">Save bio</button>
-            <button class="rr-mini rr-bioclear">Clear</button>
+            <button class="rr-mini rr-biosave">Save Big Brain</button>
+            <button class="rr-mini rr-bioclear">Clear all</button>
           </div>
         </div>
         <div class="rr-history" style="display:none"></div>
@@ -673,7 +721,6 @@
   const grabBtn = root.querySelector(".rr-grab");
   const bioBtn = root.querySelector(".rr-biobtn");
   const bioBox = root.querySelector(".rr-biobox");
-  const bioTa = root.querySelector(".rr-biota");
   const histBtn = root.querySelector(".rr-histbtn");
   const histBox = root.querySelector(".rr-history");
   const vaultBtn = root.querySelector(".rr-vaultbtn");
@@ -752,14 +799,44 @@
   });
   root.querySelector(".rr-agentsave").addEventListener("click", saveAgentMission);
 
-  /* ---------- 🧠 bio memory — truthful first-person ---------- */
+  /* ---------- 🧠 Big Brain — who I am / how I talk / flex / never (v0.11.0) ---------- */
+
+  const brainFields = Array.from(root.querySelectorAll("[data-brain]"));
+  const brainCounts = Array.from(root.querySelectorAll(".rr-braincount"));
+
+  function brainHas() {
+    return Object.values(state.brain).some((v) => v && v.trim());
+  }
+
+  function refreshBrainCounts() {
+    const caps = { about: 600, voice: 800, flex: 400, never: 300 };
+    brainCounts.forEach((c) => {
+      const key = c.getAttribute("data-count");
+      const v = state.brain[key] || "";
+      c.textContent = v ? `${v.length}/${caps[key]}` : "";
+    });
+  }
+
+  function fillBrainFields() {
+    brainFields.forEach((ta) => {
+      ta.value = state.brain[ta.getAttribute("data-brain")] || "";
+    });
+    refreshBrainCounts();
+  }
+
+  brainFields.forEach((ta) => {
+    ta.addEventListener("input", () => {
+      const key = ta.getAttribute("data-brain");
+      state.brain[key] = ta.value;
+      refreshBrainCounts();
+    });
+  });
 
   bioBtn.addEventListener("click", () => {
     const open = bioBox.style.display !== "none";
     bioBox.style.display = open ? "none" : "block";
     if (!open) {
-      bioTa.value = state.bio;
-      bioTa.focus();
+      fillBrainFields();
       histBox.style.display = "none"; // one drawer at a time
       agentBox.style.display = "none";
       vaultBox.style.display = "none";
@@ -767,25 +844,40 @@
     }
   });
   root.querySelector(".rr-biosave").addEventListener("click", () => {
-    state.bio = bioTa.value.trim().slice(0, 300);
+    // Pull field values (respect the maxlength caps server-side mirrors)
+    brainFields.forEach((ta) => {
+      const key = ta.getAttribute("data-brain");
+      const cap = { about: 600, voice: 800, flex: 400, never: 300 }[key];
+      state.brain[key] = ta.value.trim().slice(0, cap);
+    });
+    state.bio = state.brain.about; // legacy field stays in sync for payloads
     try {
-      chrome.storage.sync.set({ [BIO_KEY]: state.bio });
+      chrome.storage.sync.set({ [BRAIN_KEY]: state.brain });
+      chrome.storage.sync.remove(BIO_KEY); // migration complete — drop legacy
     } catch (e) {}
-    bioBtn.classList.toggle("rr-has-bio", !!state.bio);
+    bioBtn.classList.toggle("rr-has-bio", brainHas());
     bioBox.style.display = "none";
+    const filled = Object.entries(state.brain)
+      .filter(([, v]) => v && v.trim())
+      .map(([k]) => k)
+      .join(", ");
     dlog(
-      `bio saved (${state.bio.length} chars) — the Brain may flex it in first person, truthfully`
+      filled
+        ? `Big Brain saved (${filled}) — replies now sound like YOU`
+        : "Big Brain saved (empty) — stranger-safe mode"
     );
   });
   root.querySelector(".rr-bioclear").addEventListener("click", () => {
+    state.brain = { about: "", voice: "", flex: "", never: "" };
     state.bio = "";
-    bioTa.value = "";
+    fillBrainFields();
     try {
+      chrome.storage.sync.remove(BRAIN_KEY);
       chrome.storage.sync.remove(BIO_KEY);
     } catch (e) {}
     bioBtn.classList.remove("rr-has-bio");
     bioBox.style.display = "none";
-    dlog("bio cleared — back to stranger-safe mode");
+    dlog("Big Brain cleared — back to stranger-safe mode");
   });
 
   /* ---------- 🕘 history + shared copy helper ---------- */
@@ -1447,6 +1539,11 @@
       agent: directive,
       thread: Array.isArray(state.threadCtx) ? state.threadCtx : [],
       style: voiceStyle,
+      // v0.11.0 BIG BRAIN — structured self-knowledge; only non-empty
+      // fields ride along so the prompt stays lean for strangers-mode.
+      brain: Object.fromEntries(
+        Object.entries(state.brain).filter(([, v]) => v && v.trim())
+      ),
     };
 
     try {

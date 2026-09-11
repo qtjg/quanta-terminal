@@ -4,7 +4,7 @@ import os
 import zipfile
 
 SRC = "/home/z/my-project/extension"
-OUT = "/home/z/my-project/public/rizz-extension-v0.10.2.zip"
+OUT = "/home/z/my-project/public/rizz-extension-v0.11.0.zip"
 FILES = ["background.js", "content.css", "manifest.json", "README.md", "content.js", "icon.png"]
 
 with zipfile.ZipFile(OUT, "w", zipfile.ZIP_DEFLATED) as z:
@@ -23,5 +23,5 @@ assert bad is None and len(names) == 6
 import json, io
 with zipfile.ZipFile(OUT) as z:
     m = json.loads(z.read("manifest.json"))
-assert m["version"] == "0.10.2", m["version"]
+assert m["version"] == "0.11.0", m["version"]
 print("zip manifest version:", m["version"], "✓")

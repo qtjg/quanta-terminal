@@ -437,6 +437,23 @@
   margin-top: 6px;
 }
 
+/* v0.11.0 — Big Brain field labels + live char counters */
+.rr-brainlabel {
+  margin: 8px 0 3px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #d4b572;
+}
+.rr-brainlabel:first-of-type {
+  margin-top: 0;
+}
+.rr-braincount {
+  font-weight: 600;
+  font-size: 10px;
+  color: #71717a;
+  margin-left: 4px;
+}
+
 .rr-reroll {
   background: transparent;
   border: 1px solid #3d3223;

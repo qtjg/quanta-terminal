@@ -28,7 +28,7 @@
 const API_ORIGIN =
   "https://preview-chat-e4ce03b0-621a-4e60-9074-8481e7bfe67b.space-z.ai";
 const X_MATCH = /^https:\/\/(www\.)?(x|twitter)\.com\//;
-const VERSION = "0.10.2";
+const VERSION = "0.11.0";
 
 // Canonical endpoint builder. The v0.4.0 content script double-appended
 // /api/rizz (".../api/rizz/api/rizz" → 404). This guard force-corrects ANY

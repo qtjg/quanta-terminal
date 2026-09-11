@@ -125,6 +125,7 @@ type Body = {
   agent?: unknown;
   thread?: unknown; // v0.9.0 — conversation chain (oldest first, target last)
   style?: unknown; // v0.9.0 — user's own past replies (voice memory)
+  brain?: unknown; // v0.11.0 — Big Brain {about, voice, flex, never}
 };
 
 /* v0.9.0 THREAD PACK — normalized conversation chain item */
@@ -156,7 +157,8 @@ function buildPrompt(
   count: number,
   agent: string,
   thread: ThreadItem[] = [],
-  style = ""
+  style = "",
+  brain: { flex: string; never: string } = { flex: "", never: "" }
 ) {
   const modeLine = MODES[mode] ?? MODES.reply;
   const toneLine = TONES[tone] ?? TONES.witty;
@@ -229,22 +231,38 @@ function buildPrompt(
         ]
       : []),
     bio
-      ? `ABOUT THE USER (they told us this themselves — treat as TRUE, first-person is allowed when relevant):\n"""${bio}"""\nStay inside these facts. Do NOT stretch them into new claims.`
+      ? `ABOUT THE USER (they told us this themselves — treat as TRUE, first-person is allowed when relevant):\n"""${bio}"""\nStay inside these facts. Do NOT stretch them into new claims.` +
+        (brain.flex
+          ? `\n\nFLEX ZONE (also TRUE — the user's real wins. You may reference at most ONE of these, and only when the tweet genuinely invites it; never invent anything beyond this list):\n"""${brain.flex}"""`
+          : "")
       : "GROUNDING RULES — breaking any of these is total failure:",
     ...(bio
       ? [
           "",
-          "STILL FORBIDDEN: anything beyond the bio — no invented achievements, metrics, numbers, or experiences that are not in it.",
+          "STILL FORBIDDEN: anything beyond ABOUT THE USER and the FLEX ZONE — no invented achievements, metrics, numbers, or experiences that are not in them.",
         ]
       : [
           "- NEVER invent facts about the user: no fake achievements (\"shipped my MVP\"), no fake identity (\"as a SaaS founder\"), no fake projects, metrics, numbers, experiences, or opinions.",
           "- Write text ANY stranger could truthfully post. Safe moves: react to the tweet, highlight a specific thing in it, add a general insight. Ask a smart question ONLY when the tweet asked nothing itself (STEP 1.5 rule 5) — if it did, answering ITS ask is the only safe move.",
           "- If the tweet asks people to share something about themselves, do NOT fill in fake details (no 'link in bio', no 'just dropped mine' — we don't know the user has those). JOIN the invite as a curious participant instead — never answer it with a detached question about the tweet's topic, and never offer the author's own promised value back (STEP 1.5 rule 6).",
         ]),
+    // v0.11.0 BIG BRAIN — personal hard bans. Anything listed here is a
+    // total-failure signal for every variant, same severity as fabrication.
+    ...(brain.never
+      ? [
+          "",
+          `HARD NO LIST — the user's personal bans. Any variant that uses these words/phrases/styles or makes these claims is total failure — rewrite it before shipping:\n"""${brain.never}"""`,
+        ]
+      : []),
     "- At least one variant must reference a specific detail from the tweet (its words, topic, or ask).",
     "- Do not parrot the tweet: at most 3 consecutive words may overlap with its text.",
     "",
-    "FINAL CHECK (silent, before output): did the tweet contain an explicit question or invitation? If YES, hold every variant against it — any variant that fails to answer that exact ask gets rewritten now, not shipped. If NO, skip this check.",
+    "FINAL CHECK (silent, before output): did the tweet contain an explicit question or invitation? If YES, hold every variant against it — any variant that fails to answer that exact ask gets rewritten now, not shipped. If NO, skip this check." +
+      // v0.11.0 BIG BRAIN — re-state the personal bans here; a mid-prompt
+      // list alone let one flash-tier reply slip a banned word through.
+      (brain.never
+        ? " SECOND CHECK: does ANY variant use a word/phrase/style or claim from the HARD NO LIST? If yes, rewrite that variant right now — shipping it is total failure."
+        : ""),
     "",
     "FORMAT RULES:",
     `- Length: ${lengthLine}`,
@@ -501,8 +519,6 @@ export async function POST(req: NextRequest) {
   const modeInput = typeof body.mode === "string" ? body.mode : "reply";
   const toneInput = typeof body.tone === "string" ? body.tone : "witty";
   const author = typeof body.author === "string" ? body.author : "";
-  const bio =
-    typeof body.bio === "string" ? body.bio.trim().slice(0, 300) : "";
   const lengthInput = typeof body.length === "string" ? body.length : "normal";
   const countInput = typeof body.count === "number" ? Math.round(body.count) : 3;
   const count = Math.min(3, Math.max(1, countInput));
@@ -532,8 +548,49 @@ export async function POST(req: NextRequest) {
 
   // v0.9.0 VOICE MEMORY — the user's own past replies (device-stored),
   // passed as loose style guidance. Capped hard; treated as untrusted input.
-  const style =
+  const styleExplicit =
     typeof body.style === "string" ? body.style.trim().slice(0, 700) : "";
+
+  // v0.11.0 BIG BRAIN — the user's structured self-knowledge, device-stored:
+  // about = who they are (truth zone), voice = how they talk (style samples),
+  // flex = true wins that may be woven in, never = personal hard bans.
+  // All fields are untrusted input, capped hard.
+  const brainRaw = (body.brain ?? {}) as {
+    about?: unknown;
+    voice?: unknown;
+    flex?: unknown;
+    never?: unknown;
+  };
+  const brainAbout =
+    typeof brainRaw.about === "string"
+      ? brainRaw.about.trim().slice(0, 600)
+      : "";
+  const brainVoice =
+    typeof brainRaw.voice === "string"
+      ? brainRaw.voice.trim().slice(0, 800)
+      : "";
+  const brainFlex =
+    typeof brainRaw.flex === "string"
+      ? brainRaw.flex.trim().slice(0, 400)
+      : "";
+  const brainNever =
+    typeof brainRaw.never === "string"
+      ? brainRaw.never.trim().slice(0, 300)
+      : "";
+
+  // Effective identity: Big Brain fills whatever the classic fields don't
+  // provide (an explicit legacy bio keeps its 300-cap and wins).
+  const bio =
+    typeof body.bio === "string" && body.bio.trim()
+      ? body.bio.trim().slice(0, 300)
+      : brainAbout;
+
+  // Effective voice: explicit style samples + Big Brain voice notes merge
+  // into one VOICE MATCH block.
+  const style = [styleExplicit, brainVoice]
+    .filter(Boolean)
+    .join("\n")
+    .slice(0, 900);
 
   if (!tweet) {
     return NextResponse.json(
@@ -566,10 +623,12 @@ export async function POST(req: NextRequest) {
       count,
       agent,
       thread,
-      style
+      style,
+      { flex: brainFlex, never: brainNever }
     );
     // Linter applies only when we know NOTHING about the user: hook mode is
-    // the user's own draft, and a provided bio makes first-person claims real.
+    // the user's own draft, and a provided bio (or Big Brain about/flex)
+    // makes first-person claims real.
     const lintEligible = mode !== "hook" && !bio;
 
     const ask = (extra: string | undefined, model: string | undefined) =>
