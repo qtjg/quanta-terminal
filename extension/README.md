@@ -1,10 +1,26 @@
-# RizzReply — personal X copilot (v0.9.0)
+# RizzReply — personal X copilot (v0.12.0)
 
 Floating AI copilot for x.com with **Auto-write Agent**: click ✨ →
 🤖 Auto-write → it reads the tweet on your screen, the Brain picks the
 best tone, writes the reply, and drops it into the reply box. You press
 Post. That's the whole flow.
 
+v0.12.0 post pack:
+- **🚀 POST MODE — the tool now tweets for you.** New **Post** pill:
+  give it a topic, an idea or a rough draft — it writes ORIGINAL
+  scroll-stopping tweets (hook-first, concrete, shareable, zero
+  engagement-bait cringe) with your Big Brain baked in.
+- **🚀 Post it (FULL SEND)** — one button: opens the tweet composer,
+  types the post and presses X's own Post button. One post per click —
+  you picked the text, the tool ships it. (Post + Hook modes; a reply
+  box can never hijack your standalone post.)
+- **💡 Next-move bar** — every batch now shows the Brain's traction
+  move (first-hour reply plan, quote-tweet angle, who to send it to).
+v0.11.0 big brain pack:
+- **🧠 Big Brain drawer** — 4 fields: 👤 Who I am / 🗣 How I talk
+  (paste real replies — your rhythm gets mirrored) / 🏆 Flex zone
+  (TRUE wins it may drop when invited) / 🚫 Never say (personal hard
+  bans). Replies act like YOU, not a ghostwriter.
 v0.9.0 batch pack:
 - **📋 Batch queue (PC)** — scroll your feed, hit **📋 Queue → ＋ Add current**
   to park any tweet (max 10, deduped, saved on your machine). Later open them
@@ -48,8 +64,10 @@ Plus v0.4.x: screen-reading Agent mode, 3-strategy typing engine,
 background auto-injection that auto-replaces stale panels, and Brain v2
 on the server (tweet-type detection, anti-fabrication rules).
 
-Copilot, not autopilot: it never presses Post, follows, or likes anything.
-You stay in control of every action — that keeps your account safe.
+Copilot, not autopilot — with ONE exception you control: **🚀 Post it**
+presses Post on the exact text you clicked it for (Post/Hook modes
+only). It never auto-likes, auto-follows, or batch-spams — mass
+automation is how accounts get flagged. Your feed stays human.
 
 ## Upgrading from an older version (do it CLEAN)
 
@@ -84,12 +102,23 @@ You stay in control of every action — that keeps your account safe.
 
 - **Hover** any tweet to capture it, or paste it manually — or hit
   **📥 use my draft** to pull what's already in your reply box
-- Pick a **Mode**: Reply / Quote / Hook · **Tone**: 🎲 Auto → Savage
+- Pick a **Mode**: Reply / Quote / Hook / **Post** · **Tone**: 🎲 Auto → Savage
 - **✨ Generate 3 options**, then:
+  - **🚀 Post it** (Post + Hook): types it into the tweet composer AND
+    presses Post — full send in one click
   - **⚡ Auto-type** works in every mode: Reply → reply box, Quote →
-    quote composer (opens it for you), Hook → Post composer
+    quote composer (opens it for you), Hook/Post → Post composer
   - **🔄 regenerate 3 more** for a fresh batch anytime
   - Copy always there as the safe fallback
+
+## Farming followers & views (Post mode flow)
+
+1. Click ✨ → **Post** pill
+2. Type a topic ("why I build at 6am", "what shipping taught me today")
+3. **✨ Generate 3 options** — hook-first posts built for the repost
+4. Hit **🚀 Post it** on the winner — composer opens, types, posts
+5. Follow the **💡 Next** bar: the first hour of replies is where
+   traction is farmed
 
 ## Android / iPhone
 
@@ -107,9 +136,9 @@ Android floating-bubble APK also available on that page.
 
 ## Troubleshoot
 
-- **Bubble missing?** Check the extension card shows **0.9.0**. On x.com
+- **Bubble missing?** Check the extension card shows **0.12.0**. On x.com
   press F12 → Console — you should see
-  `[RizzReply] v0.9.0 injected ✓`. No line = not injected: screenshot
+  `[RizzReply] v0.12.0 injected ✓`. No line = not injected: screenshot
   the extension's Details → Errors page.
 - **Bubble in the way?** Just **drag it** somewhere else — it stays there.
 - **Auto-type fails?** Click once INSIDE the reply box (cursor blinks

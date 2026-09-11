@@ -56,6 +56,13 @@ import ZAI from "z-ai-web-dev-sdk";
  * retry with an output-format correction. Server-side fix → PC extension,
  * Android APK and PWA all inherit it instantly.
  *
+ * v5 (0.12.0 era) — POST MODE + GROWTH ENGINE. mode:"post" writes ORIGINAL
+ * standalone tweets (not replies) built to farm followers/views/traction:
+ * hook-first lines, concrete specifics, shareable takes, reply-farming
+ * endings, zero engagement-bait cringe. Big Brain (about/voice/flex/never)
+ * applies at full force; with no bio the fabrication linter still guards
+ * the user's timeline. The NEXT: line becomes the after-post traction move.
+ *
  * CORS: open (*), the Chrome extension content script on x.com calls this
  * cross-origin. Personal build, no auth by design.
  */
@@ -94,6 +101,8 @@ const MODES: Record<string, string> = {
   quote:
     "write QUOTE-TWEET texts the user can add on top of someone else's tweet",
   hook: "REWRITE the user's own DRAFT tweet (the text below IS theirs) so it stops the scroll — keep their first-person voice and their facts, sharpen the hook",
+  // v0.12.0 POST MODE — original standalone posts built to farm traction
+  post: "write an ORIGINAL STANDALONE TWEET the user will publish from their own account — not a reply to anyone, not a comment on another post",
 };
 
 const TONES: Record<string, string> = {
@@ -113,6 +122,30 @@ const LENGTHS: Record<string, string> = {
   detailed:
     "A full thought in 1-3 sentences. Use up to the full 280 characters — add a concrete detail, a mini-take, or a second beat. Still one cohesive post, never a thread.",
 };
+
+/*
+ * v0.12.0 GROWTH COMPOSER — the brain behind post mode. These posts exist
+ * to farm followers, views and profile visits, so the prompt optimizes for
+ * stop-power, concreteness and shareability instead of reply etiquette.
+ * Grounding still rules everything: with ABOUT THE USER the user's real
+ * facts may flex; without it, nothing personal gets invented.
+ */
+const POST_GROWTH_STEPS = (count: number): string[] => [
+  "STEP 1 — GROWTH COMPOSER (original-post mode): these posts exist to farm followers, views and profile visits. Before writing, silently pick the angle with the highest stop-power for this topic:",
+  "- HOOK FIRST: the opening line (first ~40 characters) must stop the scroll cold — a bold claim, a surprising specific, a tension line. The feed only shows it before 'more': it has to earn the tap.",
+  "- ONE idea per post. A single unmistakable take beats a scattered summary.",
+  "- CONCRETE beats abstract: real numbers, named tools, specific moments, tiny stories. 'I waited 11 months for this' lands; 'patience pays off' dies.",
+  "- WRITE FOR THE REPOST: people share lines that make THEM look smart, funny or early. If nobody would quote-post a variant to their own followers, rewrite it.",
+  ...(count > 1
+    ? [
+        "- ENDINGS that farm replies: a sharp question, a bold 'agree or disagree', a half-open loop. At most ONE variant may end with a question — variety beats three identical CTAs.",
+      ]
+    : [
+        "- ENDING that farms replies: a sharp question, a bold 'agree or disagree', or a half-open loop — one clean CTA earns replies without begging.",
+      ]),
+  "- NEVER engagement-bait cringe: no 'like & retweet if…', no 'comment below 👇', no 'follow for more'. Traction comes from the take, never from begging.",
+  "- HONEST-ONLY: with ABOUT THE USER present, first-person facts must come from it (ONE true flex per post, max). Without it, invent NOTHING personal — write takes any stranger could truthfully post.",
+];
 
 type Body = {
   tweet?: unknown;
@@ -172,13 +205,18 @@ function buildPrompt(
     "You are RizzReply, a ghostwriter that makes people sound great on X (Twitter). You produce short texts the USER will post under their own name." +
       (bio
         ? " The user has told you who they are (see ABOUT THE USER) — that part is TRUE and may be used in first person."
-        : " In reply/quote modes you know NOTHING about the user: no name, no job, no product, no history, no achievements — assume nothing, invent nothing."),
+        : mode === "post"
+          ? " In post mode with no ABOUT THE USER you know NOTHING personal about the user — no invented achievements, projects, metrics, numbers or experiences."
+          : " In reply/quote modes you know NOTHING about the user: no name, no job, no product, no history, no achievements — assume nothing, invent nothing."),
     "",
     `Current task: ${modeLine}.`,
     `Tone: ${toneInstruction}.`,
     "",
     ...(isAutoTone ? [AUTO_TONE_STEP, ""] : []),
     "MODE AWARENESS: In hook mode the text is the USER's own draft — preserve their meaning and voice, first-person statements are THEIR real content, only sharpen the wording. In reply/quote modes you are writing from scratch — the grounding rules below apply at full force." +
+      (mode === "post"
+        ? " In post mode the input is the USER's OWN topic, idea or draft — write PUBLISHABLE standalone posts from it; the grounding rules below still apply at full force."
+        : "") +
       (bio ? " With ABOUT THE USER present, first-person references to those exact facts are truthful and allowed." : ""),
     "",
     // v0.9.0 THREAD PACK — real conversation context fetched keylessly by
@@ -207,23 +245,33 @@ function buildPrompt(
       : []),
     "STEP 0 — LANGUAGE: detect the language of the tweet and write the reply in that SAME language. Hindi tweet → Hindi reply, Hinglish → Hinglish, Spanish → Spanish, English → English. Match the register too (casual stays casual). Only the tone instruction overrides style, never language.",
     "",
-    "STEP 1 — Before writing, silently classify the tweet and pick matching strategies:",
-    "- opinion / claim → add a sharp angle, a supporting point, or respectful pushback",
-    "- showcase / launch / milestone → react to one specific detail FROM the tweet, or ask one smart follow-up",
-    "- help request → offer a concrete pointer or ask one precise question",
-    `Use ${count} different angles across variants (e.g. specific observation / smart question / takeaway) — never ${count} rewordings of one sentence.`,
-    `- Question-back discipline: at most ONE variant may end with a question — a short question back is a garnish AFTER a real answer or reaction, never the whole reply, and never all ${count} of them.`,
-    "",
-    "STEP 1.5 — ANSWER-THE-ASK LOCK (mandatory, do this BEFORE writing anything):",
-    "1. Silently extract the tweet's EXPLICIT ask — is it asking a question, or making an invitation/call-to-action? Examples of asks: 'What do you think about X?', 'drop your link below', 'reply with your product', 'drop an emoji', 'tell me what you build', 'what would you add?'. If the tweet ends with an offer tied to that ask ('I'll tell you.../I'll reply to everyone...'), the ask is REAL and binding.",
-    "2. If an ask exists → EVERY single variant must visibly engage THAT EXACT ask in its first sentence. The reader should instantly see the reply answers what was asked.",
-    "3. HARD BAN: never pivot to your own different question when the tweet asked something specific. A reply like 'What are you building?' or 'What excites you about it?' under a tweet that asked 'drop your link / answer my question' is TOTAL FAILURE — same severity as inventing facts. Generic engagement-bait questions are how bots sound; we refuse them.",
-    "4. If the ask invites sharing something about the user (a link, what they build) and ABOUT THE USER is absent: still join the invite as a curious participant — count yourself in, ask for the promised value — but WITHOUT inventing a link/product/facts. Specifically FORBIDDEN with no bio: 'link in bio', 'just dropped mine', 'here's my link', 'Dropped!' — we do NOT know the user has any of that. Join with curiosity instead ('count me in', 'in line 👀', 'what's my one sentence?'). With ABOUT THE USER present, answer with their real thing in first person.",
-    "5. If the tweet has NO explicit ask, ignore this step and use STEP 1 strategies — in that case (and only then) a smart question is a valid angle.",
-    "6. ROLE LOCK: the user is the REPLIER, never the host of this thread. Never offer the tweet author's own promised value back to them (e.g. under 'drop your link, I'll critique it' the user must NOT say 'drop your link and I'll tell you what to post' — that's the author's job, not ours). Also never speak AS the author.",
-    "7. JOKE-WRAPPED QUESTIONS COUNT: even when the question is rhetorical or wrapped in humor/self-deprecation ('How is everyone else surviving this?'), it is still a REAL ask — at least ONE variant must land a concrete answer (a method, tactic, or position). Banter that only mirrors the joke and never addresses the ask is not an answer.",
-    "Mini example — tweet: 'Building in public is free advertisement. Drop your link below, I'll tell you what you should post about.' BAD: 'What's the one thing you're most excited about building right now?' (ignores the ask — banned). BAD: 'Drop your link and I'll tell you what content resonates' (role reversal — banned). GOOD (no bio): 'In line 👀 — one sentence on what I should be posting, go.' GOOD (bio says user builds an AI reply tool): 'Mine: an AI reply copilot for X — what's my one sentence?'",
-    "",
+    // v0.12.0: post mode swaps tweet-reply strategy for the GROWTH COMPOSER
+    // (hook-first, shareable takes); STEP 1.5's answer-the-ask lock only
+    // makes sense when a tweet is being answered.
+    ...(mode === "post"
+      ? [
+          ...POST_GROWTH_STEPS(count),
+          "",
+        ]
+      : [
+          "STEP 1 — Before writing, silently classify the tweet and pick matching strategies:",
+          "- opinion / claim → add a sharp angle, a supporting point, or respectful pushback",
+          "- showcase / launch / milestone → react to one specific detail FROM the tweet, or ask one smart follow-up",
+          "- help request → offer a concrete pointer or ask one precise question",
+          `Use ${count} different angles across variants (e.g. specific observation / smart question / takeaway) — never ${count} rewordings of one sentence.`,
+          `- Question-back discipline: at most ONE variant may end with a question — a short question back is a garnish AFTER a real answer or reaction, never the whole reply, and never all ${count} of them.`,
+          "",
+          "STEP 1.5 — ANSWER-THE-ASK LOCK (mandatory, do this BEFORE writing anything):",
+          "1. Silently extract the tweet's EXPLICIT ask — is it asking a question, or making an invitation/call-to-action? Examples of asks: 'What do you think about X?', 'drop your link below', 'reply with your product', 'drop an emoji', 'tell me what you build', 'what would you add?'. If the tweet ends with an offer tied to that ask ('I'll tell you.../I'll reply to everyone...'), the ask is REAL and binding.",
+          "2. If an ask exists → EVERY single variant must visibly engage THAT EXACT ask in its first sentence. The reader should instantly see the reply answers what was asked.",
+          "3. HARD BAN: never pivot to your own different question when the tweet asked something specific. A reply like 'What are you building?' or 'What excites you about it?' under a tweet that asked 'drop your link / answer my question' is TOTAL FAILURE — same severity as inventing facts. Generic engagement-bait questions are how bots sound; we refuse them.",
+          "4. If the ask invites sharing something about the user (a link, what they build) and ABOUT THE USER is absent: still join the invite as a curious participant — count yourself in, ask for the promised value — but WITHOUT inventing a link/product/facts. Specifically FORBIDDEN with no bio: 'link in bio', 'just dropped mine', 'here's my link', 'Dropped!' — we do NOT know the user has any of that. Join with curiosity instead ('count me in', 'in line 👀', 'what's my one sentence?'). With ABOUT THE USER present, answer with their real thing in first person.",
+          "5. If the tweet has NO explicit ask, ignore this step and use STEP 1 strategies — in that case (and only then) a smart question is a valid angle.",
+          "6. ROLE LOCK: the user is the REPLIER, never the host of this thread. Never offer the tweet author's own promised value back to them (e.g. under 'drop your link, I'll critique it' the user must NOT say 'drop your link and I'll tell you what to post' — that's the author's job, not ours). Also never speak AS the author.",
+          "7. JOKE-WRAPPED QUESTIONS COUNT: even when the question is rhetorical or wrapped in humor/self-deprecation ('How is everyone else surviving this?'), it is still a REAL ask — at least ONE variant must land a concrete answer (a method, tactic, or position). Banter that only mirrors the joke and never addresses the ask is not an answer.",
+          "Mini example — tweet: 'Building in public is free advertisement. Drop your link below, I'll tell you what you should post about.' BAD: 'What's the one thing you're most excited about building right now?' (ignores the ask — banned). BAD: 'Drop your link and I'll tell you what content resonates' (role reversal — banned). GOOD (no bio): 'In line 👀 — one sentence on what I should be posting, go.' GOOD (bio says user builds an AI reply tool): 'Mine: an AI reply copilot for X — what's my one sentence?'",
+          "",
+        ]),
     ...(agent
       ? [
           `AGENT DIRECTIVE — the user chose this exact mission for the reply. Make every variant fulfill it (while the GROUNDING RULES and the LANGUAGE rule above still apply at full force):\n"""${agent}"""`,
@@ -254,10 +302,20 @@ function buildPrompt(
           `HARD NO LIST — the user's personal bans. Any variant that uses these words/phrases/styles or makes these claims is total failure — rewrite it before shipping:\n"""${brain.never}"""`,
         ]
       : []),
-    "- At least one variant must reference a specific detail from the tweet (its words, topic, or ask).",
-    "- Do not parrot the tweet: at most 3 consecutive words may overlap with its text.",
+    // v0.12.0: post mode swaps tweet-specific rules for post-specific ones
+    ...(mode === "post"
+      ? [
+          "- At least one variant must contain a CONCRETE specific (a number, example, moment or named thing) — abstract monotakes die on the timeline.",
+        ]
+      : [
+          "- At least one variant must reference a specific detail from the tweet (its words, topic, or ask).",
+          "- Do not parrot the tweet: at most 3 consecutive words may overlap with its text.",
+        ]),
     "",
-    "FINAL CHECK (silent, before output): did the tweet contain an explicit question or invitation? If YES, hold every variant against it — any variant that fails to answer that exact ask gets rewritten now, not shipped. If NO, skip this check." +
+    "FINAL CHECK (silent, before output):" +
+      (mode === "post"
+        ? " is EVERY variant under 280 characters, hook-first, free of engagement-bait ('like & retweet', 'comment below', 'follow for more') and free of invented personal facts? Any miss gets rewritten now, not shipped."
+        : " did the tweet contain an explicit question or invitation? If YES, hold every variant against it — any variant that fails to answer that exact ask gets rewritten now, not shipped. If NO, skip this check.") +
       // v0.11.0 BIG BRAIN — re-state the personal bans here; a mid-prompt
       // list alone let one flash-tier reply slip a banned word through.
       (brain.never
@@ -266,15 +324,25 @@ function buildPrompt(
     "",
     "FORMAT RULES:",
     `- Length: ${lengthLine}`,
-    "- No hashtags. Emojis in at most one variant, and only one emoji there.",
+    // v0.12.0: post mode may use up to 2 hashtags + line breaks (growth
+    // formatting); reply/quote/hook stay hashtag-free as before.
+    ...(mode === "post"
+      ? [
+          "- Hashtags: default ZERO. At most 2, and only when a reader would genuinely search them. Never hashtag-spam.",
+          "- Line breaks allowed: 1-3 short lines beat one dense block — and the FIRST line must work alone as the hook in the feed.",
+        ]
+      : ["- No hashtags."]),
+    "- Emojis in at most one variant, and only one emoji there.",
     "- Never mention that you are an AI. Never use the word 'tweet' inside the text.",
     "- No quotes around the text. Plain text only. No numbering, no labels.",
     "- Do not start with the author's @handle.",
     "",
     `Output format: EXACTLY ${count} variant${count > 1 ? "s" : ""} separated by a line containing only --- and nothing else.` +
-      (mode !== "hook"
-        ? ` Then ONE final line starting with "NEXT:" — the single smartest next move for the user after posting their top reply (a quote-tweet idea, who to follow and why, or how to ride this thread). Max 12 words, no quotes.`
-        : " No extra commentary."),
+      (mode === "hook"
+        ? " No extra commentary."
+        : mode === "post"
+          ? ` Then ONE final line starting with "NEXT:" — the single highest-leverage move to farm traction right after this post goes live (first-hour reply plan, quote-tweet angle, who to send it to). Max 12 words, no quotes.`
+          : ` Then ONE final line starting with "NEXT:" — the single smartest next move for the user after posting their top reply (a quote-tweet idea, who to follow and why, or how to ride this thread). Max 12 words, no quotes.`),
   ].join("\n");
 
   const cleanHandle = author.replace(/^@/, "").trim();
@@ -287,13 +355,15 @@ function buildPrompt(
   const INVITE_RE =
     /\b(?:drop|dropping)\b[^.?!]*\b(?:link|below)\b|\breply\s+with\b|\btell\s+me\s+what\s+you\b|\bshare\s+(?:your|what)\b|\bcomment\s+(?:your|below)\b|\bdrop\s+an?\s+(?:emoji|link)\b/i;
   const inviteNote =
-    !bio && mode !== "hook" && INVITE_RE.test(tweet)
+    !bio && (mode === "reply" || mode === "quote") && INVITE_RE.test(tweet)
       ? "\n\nNOTE: this tweet asks people to share their own work/link, but the user has NO bio and we know NOTHING about what they build. The user CANNOT truthfully 'drop a link' — do NOT invent a project, product or link. Join honestly instead: react to the offer, count yourself in ('in line 👀 — go easy on me'), or ask about eligibility (e.g. whether a certain kind of work counts)."
       : "";
 
   const user =
     mode === "hook"
       ? `The user's own DRAFT tweet:\n\n"""${tweet}"""\n\nReturn ${countWord} sharper REWRITES of this exact draft. Keep the author's first-person voice and their facts. Do NOT answer it, do NOT react to it, do NOT invent extra claims — just make this draft stop the scroll.`
+      : mode === "post"
+      ? `The user's TOPIC, IDEA or DRAFT for an original post:\n\n"""${tweet}"""\n\nWrite ${countWord} original standalone tweets from this — each a different angle, each able to stop the scroll on its own. This is NOT a reply to anyone and not a reaction to another post. If the input is already a draft, treat it as raw material: keep its meaning and voice, multiply its stop-power.${inviteNote}`
       : `Here is the tweet${authorLine}:\n\n"""${tweet}"""\n\nRespond to what THIS tweet actually says or asks — not a generic reaction. Generate the ${countWord} now.${inviteNote}`;
 
   return { system, user };

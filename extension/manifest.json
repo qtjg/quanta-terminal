@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "RizzReply \u2014 X Copilot",
-  "version": "0.11.0",
-  "description": "Floating AI copilot for x.com \u2014 auto-write agent with full-tweet + thread comprehension, voice memory (replies sound like YOU), star-to-Vault keeper replies, batch queue (park tweets while you scroll), changeable missions, auto tone, bio memory, re-roll, auto-type. Personal build.",
+  "version": "0.12.0",
+  "description": "Floating AI copilot for x.com — auto-write agent with full-tweet + thread comprehension, voice memory (replies sound like YOU), original-post mode with one-click Post, star-to-Vault keeper replies, batch queue, changeable missions, auto tone, re-roll, auto-type. Personal build.",
   "permissions": [
     "storage",
     "scripting"

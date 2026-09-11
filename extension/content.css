@@ -338,6 +338,34 @@
 .rr-copy:hover { background: #fbbf24; color: #000; }
 .rr-copy.rr-done { background: #22c55e; color: #000; }
 
+/* ---- v0.12.0 — 🚀 Post it (full send) + 💡 NEXT traction bar ---- */
+
+.rr-post {
+  border: none;
+  border-radius: 8px;
+  background: #1d9bf0;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.rr-post:hover { background: #42a5f5; }
+.rr-post:disabled { opacity: 0.6; cursor: wait; }
+.rr-post.rr-done { background: #22c55e; color: #000; }
+
+.rr-next {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #d4b572;
+  background: #241e13;
+  border: 1px solid #3d3223;
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+
 .rr-empty {
   margin-top: 12px;
   text-align: center;

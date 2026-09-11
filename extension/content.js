@@ -42,6 +42,12 @@
  * bans). Stored as rizzBrain (sync), legacy rizzBio auto-migrates into
  * "Who I am". Server renders ABOUT + FLEX ZONE + VOICE MATCH + HARD NO
  * LIST — so replies act like the user, not a generic ghostwriter.
+ * v0.12.0 — POST MODE + GROWTH ENGINE: the tool now writes ORIGINAL tweets
+ * too (Post pill — topic in, scroll-stopping posts out), and can FULL-SEND
+ * them: 🚀 Post it opens the tweet composer (never a reply box), types the
+ * post via the 3-strategy engine and presses X's own Post button. Every
+ * result card also shows the server's 💡 NEXT: traction move. Big Brain
+ * applies to posts at full force — the account still sounds like YOU.
  */
 (() => {
   // Version-aware mount guard. Old builds used a plain "loaded" flag —
@@ -59,7 +65,7 @@
   //      actually exists — a stripped/absent root always remounts;
   //   2) background.js deletes window.__rizzVer when it strips, so any
   //    future version drift can never strand the page bubble-less again.
-  const RR_VER = "0.11.0";
+  const RR_VER = "0.12.0";
   const existingRoot = document.getElementById("rr-root");
   if (
     window.__rizzVer === RR_VER &&
@@ -90,8 +96,8 @@
   }
   const apiUrl = () => `${normalizeBase(apiBase)}/api/rizz`;
 
-  const MODES = ["reply", "quote", "hook"];
-  const MODE_LABELS = { reply: "Reply", quote: "Quote", hook: "Hook" };
+  const MODES = ["reply", "quote", "hook", "post"];
+  const MODE_LABELS = { reply: "Reply", quote: "Quote", hook: "Hook", post: "Post" };
   const TONES = [
     "auto",
     "witty",
@@ -196,6 +202,7 @@
     reply: "Hover a tweet to grab it, or paste it here...",
     quote: "Paste the tweet you're quoting...",
     hook: "Paste YOUR draft tweet...",
+    post: "Topic, idea or raw draft — what should the tweet say? e.g. 'why I build at 6am'",
   };
 
   let apiBase = DEFAULT_API;
@@ -459,6 +466,39 @@
 
   // Open (or find) the right composer for a mode, returning visible boxes.
   async function openComposerFor(mode) {
+    // v0.12.0 — POST MODE COMPOSER GUARD: an original post must land in a
+    // TWEET composer, never a reply box (a visible reply box would hijack
+    // the post and turn a standalone tweet into a stray reply). First
+    // choice: the home timeline's inline composer (inside toolBar).
+    // Otherwise: open the compose modal via the nav's Post button.
+    if (mode === "post") {
+      const inline = Array.from(
+        document.querySelectorAll(
+          '[data-testid="toolBar"] [data-testid^="tweetTextarea_"]'
+        )
+      ).filter((el) => el.getClientRects().length > 0);
+      if (inline.length) {
+        dlog("autoType: using the home timeline composer for Post mode");
+        return inline;
+      }
+      const newPost = document.querySelector(
+        '[data-testid="SideNav_NewPost_Button"]'
+      );
+      if (!newPost) {
+        dlog("autoType: no Post button in the nav — open a composer manually");
+        return [];
+      }
+      dlog("autoType: opening the compose modal for Post mode…");
+      newPost.click();
+      let boxes = [];
+      for (let i = 0; i < 20; i++) {
+        await sleep(150);
+        boxes = visibleComposers();
+        if (boxes.length) break;
+      }
+      return boxes;
+    }
+
     let boxes = visibleComposers();
     if (boxes.length) return boxes;
 
@@ -515,6 +555,10 @@
     return boxes;
   }
 
+  // v0.12.0 — the composer autoType last typed into (toolBar inline vs
+  // modal), so postIt can press the Post button from the SAME context.
+  let lastTypedBox = null;
+
   async function autoType(text, mode) {
     const boxes = await openComposerFor(mode || state.mode);
 
@@ -526,6 +570,7 @@
     // Prefer the main composer (tweetTextarea_0), else first visible
     const box =
       boxes.find((b) => b.dataset.testid === "tweetTextarea_0") || boxes[0];
+    lastTypedBox = box;
     box.scrollIntoView({ block: "center" });
     dlog(
       `autoType: composer found (${box.dataset.testid}) — trying typing strategies`
@@ -549,6 +594,48 @@
     }
     dlog("autoType: all 3 strategies failed — click inside the reply box once, then retry");
     return false;
+  }
+
+  /* ---------- 🚀 POST IT — full send (v0.12.0) ----------
+   * Post mode's one-click publishing: opens the TWEET composer (the guard
+   * in openComposerFor makes sure it is never a reply box), types the post
+   * with the 3-strategy engine, then presses X's OWN Post button once it
+   * turns enabled. Still one post per click — no batch spamming, the human
+   * picked this exact text. Returns:
+   *   "posted" — typed AND the Post button was clicked
+   *   "typed"  — text is in the composer, but Post never enabled (length
+   *              limit, media needed, X redesign) → user presses Post
+   *   false    — composer unreachable at all
+   */
+  async function postIt(text, mode) {
+    const typed = await autoType(text, mode || "post");
+    if (!typed) return false;
+    const box = lastTypedBox;
+    // The Post button lives in the same context as the composer we typed
+    // into: inline home composer → tweetButtonInline inside toolBar;
+    // compose modal → tweetButton.
+    const selector =
+      box && box.closest('[data-testid="toolBar"]')
+        ? '[data-testid="toolBar"] [data-testid="tweetButtonInline"]'
+        : '[data-testid="tweetButton"]';
+    for (let i = 0; i < 24; i++) {
+      await sleep(150);
+      const btns = Array.from(document.querySelectorAll(selector)).filter(
+        (b) => b.getClientRects().length > 0
+      );
+      for (const b of btns) {
+        const disabled =
+          b.getAttribute("aria-disabled") === "true" ||
+          b.hasAttribute("disabled");
+        if (!disabled) {
+          b.click();
+          dlog("postIt: pressed X's Post button — the tweet is going out 🚀");
+          return "posted";
+        }
+      }
+    }
+    dlog("postIt: Post button never enabled — text is typed, YOU press Post");
+    return "typed";
   }
 
   /* ---------- screen reader: lock onto the tweet in view ---------- */
@@ -1327,7 +1414,13 @@
     bubble.classList.toggle("rr-active", show);
     if (show) {
       updateTarget();
-      if (!textarea.value.trim() && state.lastTweet) {
+      // v0.12.0: post mode writes ORIGINAL tweets — the last READ tweet is
+      // not the topic, so don't prefill it there.
+      if (
+        state.mode !== "post" &&
+        !textarea.value.trim() &&
+        state.lastTweet
+      ) {
         textarea.value = state.lastTweet;
       }
       textarea.focus();
@@ -1508,7 +1601,11 @@
     const o = opts || {};
     const tweet = textarea.value.trim();
     if (!tweet) {
-      showError("Paste or hover-grab a tweet first ✍️");
+      showError(
+        state.mode === "post"
+          ? "Type a topic, idea or draft first ✍️ — the Post mode writes an original tweet from it."
+          : "Paste or hover-grab a tweet first ✍️"
+      );
       return null;
     }
     // Author handle gives the server context ("replying to @who") — best effort
@@ -1574,6 +1671,42 @@
 
         const actions = document.createElement("div");
         actions.className = "rr-actions";
+
+        // 🚀 Post it — FULL SEND (v0.12.0, post + hook modes): types the
+        // text into the tweet composer AND presses X's own Post button.
+        if (modeUsed === "post" || modeUsed === "hook") {
+          const btnPost = document.createElement("button");
+          btnPost.className = "rr-post";
+          btnPost.textContent = "🚀 Post it";
+          btnPost.title =
+            "FULL SEND — opens the tweet composer, types this post and presses Post for you";
+          btnPost.addEventListener("click", async () => {
+            if (btnPost.disabled) return;
+            btnPost.disabled = true;
+            btnPost.textContent = "Posting…";
+            const out = await postIt(p.textContent, modeUsed);
+            if (out === "posted") {
+              btnPost.textContent = "Posted ✓";
+              btnPost.classList.add("rr-done");
+              rememberVoice(p.textContent); // 🧠 posted = kept voice
+            } else if (out === "typed") {
+              btnPost.textContent = "🚀 Post it";
+              showError(
+                "Text is in the composer, but Post stayed disabled — check the length, then press Post yourself."
+              );
+            } else {
+              btnPost.textContent = "🚀 Post it";
+              showError(
+                "Couldn't open the tweet composer 😤 Open it once (the big Post button or the home composer), then hit 🚀 again — or use ⚡ Auto-type / Copy."
+              );
+            }
+            btnPost.disabled = false;
+            setTimeout(() => {
+              btnPost.classList.remove("rr-done");
+            }, 1800);
+          });
+          actions.appendChild(btnPost);
+        }
 
         // ⚡ Auto-type — all modes since v0.5.0 (reply / quote / hook)
         const btnType = document.createElement("button");
@@ -1671,6 +1804,15 @@
         card.appendChild(foot);
         results.appendChild(card);
       });
+
+      // v0.12.0 GROWTH ENGINE — the server's NEXT: traction move (reply,
+      // quote AND post modes) now surfaces on every batch.
+      if (data.nextMove) {
+        const nxt = document.createElement("p");
+        nxt.className = "rr-next";
+        nxt.textContent = `💡 Next: ${data.nextMove}`;
+        results.appendChild(nxt);
+      }
 
       // One-click fresh batch with the same input (keeps the same tone/mission)
       const again = document.createElement("button");

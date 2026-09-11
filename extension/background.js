@@ -20,15 +20,18 @@
  * script's data-ver (0.10.0), so on EVERY page load the probe judged the
  * live panel "stale", stripped it, and the re-injected content script's
  * mount guard bailed (window.__rizzVer already set) WITHOUT remounting →
- * bubble never showed. VERSION is now unified with manifest + content.js
- * (0.10.2), and the strip step below also deletes window.__rizzVer so a
- * strip can never again end without a fresh mount, whatever the versions.
+ * bubble never showed. VERSION is now unified with manifest + content.js,
+ * and the strip step below also deletes window.__rizzVer so a strip can
+ * never again end without a fresh mount, whatever the versions.
+ * v0.12.0 — POST MODE release: version unified at 0.12.0 across manifest /
+ * content.js / this file. No bridge changes — posting happens fully inside
+ * the page (content script drives X's own composer + Post button).
  */
 
 const API_ORIGIN =
   "https://preview-chat-e4ce03b0-621a-4e60-9074-8481e7bfe67b.space-z.ai";
 const X_MATCH = /^https:\/\/(www\.)?(x|twitter)\.com\//;
-const VERSION = "0.11.0";
+const VERSION = "0.12.0";
 
 // Canonical endpoint builder. The v0.4.0 content script double-appended
 // /api/rizz (".../api/rizz/api/rizz" → 404). This guard force-corrects ANY
