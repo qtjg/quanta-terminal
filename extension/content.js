@@ -1376,6 +1376,29 @@
 
   // opts.toneOverride — FULL AUTO runs force 🎲 auto (the Brain picks the
   // best tone per STEP 0.5) without touching the user's selected pill.
+  /* ---------- v0.10.1 UNLIMITED — quota-aware auto-resume ----------------
+   * The server already waits through upstream quota windows (~4 min of
+   * patient retries). If the quota stays busy even after that, THIS layer
+   * quietly resumes after a cooldown instead of dead-ending with a red
+   * banner. Personal build = patience over failure: a generate click keeps
+   * working until the AI lane frees up. */
+  const QUOTA_RE = /quota|rate|429|too many|busy/i;
+  const QUOTA_MAX_RESUMES = 8;
+  const QUOTA_COOLDOWN_S = 45;
+
+  async function callApiResilient(payload, onWait) {
+    for (let resume = 0; ; resume++) {
+      const out = await callApi(payload);
+      const errMsg = (out.data && out.data.error) || "";
+      const quotaHit =
+        (!out.ok || !out.data || !out.data.variants) && QUOTA_RE.test(errMsg);
+      if (!quotaHit || resume >= QUOTA_MAX_RESUMES) return out;
+      if (typeof onWait === "function")
+        onWait(resume + 1, QUOTA_MAX_RESUMES, QUOTA_COOLDOWN_S);
+      await sleep(QUOTA_COOLDOWN_S * 1000);
+    }
+  }
+
   async function generate(opts) {
     const o = opts || {};
     const tweet = textarea.value.trim();
@@ -1414,7 +1437,12 @@
     };
 
     try {
-      const { ok, status, data } = await callApi(payload);
+      const { ok, status, data } = await callApiResilient(
+        payload,
+        (n, max, waitS) => {
+          goBtn.textContent = `Quota busy — resuming ${n}/${max} in ${waitS}s…`;
+        }
+      );
       if (!ok || !data || !data.variants) {
         throw new Error(
           (data && data.error) ||
@@ -1495,7 +1523,12 @@
           btnRe.disabled = true;
           btnRe.textContent = "…";
           try {
-            const out = await callApi({ ...payload, count: 1 });
+            const out = await callApiResilient(
+              { ...payload, count: 1 },
+              (n, max) => {
+                btnRe.textContent = `⏳${n}/${max}`;
+              }
+            );
             if (
               !out.ok ||
               !out.data ||

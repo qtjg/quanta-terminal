@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useRef, useState } from "react";
+import { rizzFetchResilient } from "@/lib/rizz-resilient";
 
 /*
  * /rizz/batch — v0.9.0 BATCH QUEUE (one of the autonomy-tier-1 pack).
@@ -137,10 +138,9 @@ export default function BatchPage() {
         } catch {
           /* ignore */
         }
-        const gr = await fetch("/api/rizz", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        // v0.10.1 UNLIMITED — auto-resumes through upstream quota windows
+        const { res: gr, data: gd } = await rizzFetchResilient(
+          {
             tweet: tweetText,
             mode: "reply",
             tone: "auto",
@@ -148,13 +148,13 @@ export default function BatchPage() {
             author,
             thread: threadCtx,
             style,
-          }),
-        });
-        const gd = (await gr.json()) as {
-          variants?: string[];
-          nextMove?: string;
-          error?: string;
-        };
+          },
+          (n, max, s) =>
+            updateItem(i, {
+              status: "generating",
+              error: `Quota busy — resuming ${n}/${max} in ${s}s…`,
+            })
+        );
         if (!gr.ok || !gd.variants) {
           throw new Error(gd.error || `Generation failed (${gr.status})`);
         }

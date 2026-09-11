@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { rizzFetchResilient } from "@/lib/rizz-resilient";
 
 /*
  * RizzReply — personal X copilot (web panel).
@@ -649,10 +650,9 @@ export default function RizzPage() {
       setVariants([]);
       setNextMove("");
       try {
-        const res = await fetch("/api/rizz", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        // v0.10.1 UNLIMITED — auto-resumes through upstream quota windows
+        const { res, data } = await rizzFetchResilient(
+          {
             tweet: text,
             mode,
             tone: toneUsed,
@@ -661,13 +661,10 @@ export default function RizzPage() {
             agent: directive,
             thread: threadCtx, // v0.9.0 thread context (may be empty)
             style: voiceStyle(), // v0.9.0 voice memory
-          }),
-        });
-        const data = (await res.json()) as {
-          variants?: string[];
-          nextMove?: string;
-          error?: string;
-        };
+          },
+          (n, max, s) =>
+            setError(`AI quota busy — resuming ${n}/${max} in ${s}s…`)
+        );
         if (!res.ok || !data.variants) {
           throw new Error(data.error || `Request failed (${res.status})`);
         }
@@ -818,10 +815,9 @@ export default function RizzPage() {
       setRerolling(i);
       setError(null);
       try {
-        const res = await fetch("/api/rizz", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        // v0.10.1 UNLIMITED — re-roll auto-resumes through quota windows
+        const { res, data } = await rizzFetchResilient(
+          {
             tweet: text,
             mode,
             tone,
@@ -831,13 +827,10 @@ export default function RizzPage() {
             count: 1,
             thread: threadCtx, // v0.9.0 thread context
             style: voiceStyle(), // v0.9.0 voice memory
-          }),
-        });
-        const data = (await res.json()) as {
-          variants?: string[];
-          nextMove?: string;
-          error?: string;
-        };
+          },
+          (n, max, s) =>
+            setError(`AI quota busy — resuming ${n}/${max} in ${s}s…`)
+        );
         if (!res.ok || !data.variants || !data.variants.length) {
           throw new Error(data.error || `Request failed (${res.status})`);
         }
