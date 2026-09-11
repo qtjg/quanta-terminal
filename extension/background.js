@@ -16,12 +16,19 @@
  * FULL-READ step (complete tweet text by status ID, keyless).
  * v0.8.2 — bridge also proxies /api/rizz/thread for the agent's THREAD
  * CONTEXT step (conversation chain, keyless).
+ * v0.10.2 — BUBBLE-VANISHING FIX: VERSION had drifted (0.8.2) vs content
+ * script's data-ver (0.10.0), so on EVERY page load the probe judged the
+ * live panel "stale", stripped it, and the re-injected content script's
+ * mount guard bailed (window.__rizzVer already set) WITHOUT remounting →
+ * bubble never showed. VERSION is now unified with manifest + content.js
+ * (0.10.2), and the strip step below also deletes window.__rizzVer so a
+ * strip can never again end without a fresh mount, whatever the versions.
  */
 
 const API_ORIGIN =
   "https://preview-chat-e4ce03b0-621a-4e60-9074-8481e7bfe67b.space-z.ai";
 const X_MATCH = /^https:\/\/(www\.)?(x|twitter)\.com\//;
-const VERSION = "0.8.2";
+const VERSION = "0.10.2";
 
 // Canonical endpoint builder. The v0.4.0 content script double-appended
 // /api/rizz (".../api/rizz/api/rizz" → 404). This guard force-corrects ANY
@@ -66,12 +73,21 @@ async function injectIntoTab(tabId) {
     if (st && st.present && st.ver === VERSION) return; // current build live
     if (st && st.present) {
       // Stale / orphaned panel — strip it, then inject the current build.
+      // v0.10.2: ALSO clear the content script's version guard flag —
+      // otherwise the re-injected script can see its own version already
+      // registered and skip remounting, leaving the tab bubble-less
+      // (the exact mechanism of the v0.10.x "bubble not showing" bug).
       await chrome.scripting.executeScript({
         target: { tabId },
         func: () => {
           document
             .querySelectorAll("#rr-root")
             .forEach((n) => n.remove());
+          try {
+            delete window.__rizzVer;
+          } catch (e) {
+            window.__rizzVer = undefined;
+          }
         },
       });
       console.info(

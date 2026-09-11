@@ -43,12 +43,25 @@
   // "update never takes" bug: a dead panel from a removed install kept
   // sitting in open tabs forever. Now: different version → old panel is
   // stripped and this build takes over.
-  const RR_VER = "0.10.0";
-  // Version-aware mount guard — compares against THIS build's version. Old
-  // builds compared against a hardcoded older string, which could let a
-  // stale 0.4.2-era panel skip replacement entirely. Different version →
-  // old panel is stripped below and this build takes over.
-  if (window.__rizzVer === RR_VER) return;
+  // v0.10.2 CRITICAL FIX — the bubble-vanishing bug: RR_VER (0.10.0),
+  // manifest (0.10.1) and background VERSION (0.8.2) had drifted apart.
+  // On every page load the background probed data-ver="0.10.0", saw it
+  // ≠ "0.8.2", stripped the panel as "stale" and re-injected content.js —
+  // but this guard saw window.__rizzVer already set to 0.10.0 and bailed
+  // WITHOUT remounting → bubble gone. Two hardenings:
+  //   1) guard now only skips when a live (connected) same-version root
+  //      actually exists — a stripped/absent root always remounts;
+  //   2) background.js deletes window.__rizzVer when it strips, so any
+  //    future version drift can never strand the page bubble-less again.
+  const RR_VER = "0.10.2";
+  const existingRoot = document.getElementById("rr-root");
+  if (
+    window.__rizzVer === RR_VER &&
+    existingRoot &&
+    existingRoot.isConnected
+  ) {
+    return;
+  }
   try {
     document.querySelectorAll("#rr-root").forEach((n) => n.remove());
   } catch (e) {}
