@@ -1,7 +1,7 @@
 /* QUANTA filesystem commands */
 
 import { CmdCtx, CmdDef, err, absPath, nArgs, padCell, contentLines, hasStdin, stdinLines } from "./core";
-import { isDir, isFile, FSNode } from "./fs";
+import { isDir, isFile, FSNode, FS } from "./fs";
 import { parseFlags, fmtBytes } from "./text-tools";
 
 export const FS_COMMANDS: CmdDef[] = [
@@ -461,6 +461,116 @@ export const FS_COMMANDS: CmdDef[] = [
         out.push("0 problems — filesystem clean");
       }
       return out;
+    },
+  },
+  {
+    name: "snapshot", cat: "fs", desc: "filesystem time machine — save/restore the whole VFS", usage: "snapshot save [name] · snapshot list · snapshot restore <name> · snapshot rm <name>",
+    run: (ctx) => {
+      const sub = ctx.args[0] ?? "";
+      const SNAP_DIR = "/var/snapshots";
+      const SNAP_CAP = 5;
+      const snapNode = (name: string) => {
+        const n = ctx.fs.get(`${SNAP_DIR}/${name}.qsnap`);
+        return n && n.type === "file" ? n : null;
+      };
+      const parseSnap = (name: string): { name: string; saved: string; dump: string; files: number; bytes: number } | null => {
+        const n = snapNode(name);
+        if (!n) return null;
+        try { return JSON.parse(n.content); } catch { return null; }
+      };
+      /* snapshot dumps exclude /var/snapshots itself — snaps must never nest inside each other
+         (a snap embedding prior snaps grows exponentially and breaks the cap) */
+      const stripSnaps = (dump: string): string => {
+        try {
+          const root = JSON.parse(dump) as { type: string; children: Record<string, { type: string; children?: Record<string, unknown> }> };
+          const v = root.children?.["var"];
+          if (v && v.type === "dir" && v.children) delete v.children["snapshots"];
+          return JSON.stringify(root);
+        } catch { return dump; }
+      };
+      /* shared save core — dump WITHOUT the snaps dir, then write meta */
+      const doSave = (name: string): string[] => {
+        const stats = ctx.fs.countAll();
+        if (stats.bytes > 2_000_000) return err(`snapshot: filesystem too large to snapshot (${fmtBytes(stats.bytes)}, max 2 MB) — clean up with rm first`);
+        ctx.fs.mkdirp(SNAP_DIR);
+        const dump = stripSnaps(ctx.fs.dump());
+        const meta = JSON.stringify({ name, saved: new Date(ctx.now().getTime()).toISOString(), dump, files: stats.files, bytes: stats.bytes });
+        ctx.fs.writeFile(`${SNAP_DIR}/${name}.qsnap`, meta);
+        /* enforce cap: evict oldest (never the one just saved) */
+        const all = ctx.fs.list(SNAP_DIR).filter((n) => n.type === "file" && n.name.endsWith(".qsnap"));
+        if (all.length > SNAP_CAP) {
+          const metas = all.map((n) => ({ file: n.name, m: parseSnap(n.name.replace(/\.qsnap$/, "")) }))
+            .filter((x) => x.m && x.file !== `${name}.qsnap`)
+            .sort((a, b) => (a.m!.saved === b.m!.saved ? a.file.localeCompare(b.file) : a.m!.saved < b.m!.saved ? -1 : 1));
+          const excess = all.length - SNAP_CAP;
+          for (let i = 0; i < excess && i < metas.length; i++) ctx.fs.rm(`${SNAP_DIR}/${metas[i].file}`, false);
+        }
+        return [`snapshot '${name}' saved — ${stats.files} files, ${fmtBytes(stats.bytes)} (cap ${SNAP_CAP}; restore: snapshot restore ${name})`];
+      };
+      if (sub === "save") {
+        let name = ctx.args[1] ?? "";
+        if (!name) {
+          const d = ctx.now();
+          name = `snap-${String(d.getHours()).padStart(2, "0")}${String(d.getMinutes()).padStart(2, "0")}${String(d.getSeconds()).padStart(2, "0")}`;
+        }
+        if (!/^[a-z0-9][a-z0-9_-]{0,31}$/i.test(name)) return err("snapshot: name must be 1-32 chars [a-z0-9_-]");
+        return doSave(name);
+      }
+      if (sub === "list") {
+        const all = ctx.fs.list(SNAP_DIR).filter((n) => n.type === "file" && n.name.endsWith(".qsnap"));
+        if (!all.length) return ["(no snapshots — 'snapshot save [name]' creates a restore point)"];
+        const out = [`SNAPSHOTS — ${all.length}/${SNAP_CAP} slots used`, ""];
+        for (const n of all) {
+          const m = parseSnap(n.name.replace(/\.qsnap$/, ""));
+          if (!m) { out.push(`  ${n.name.replace(/\.qsnap$/, "")}  (corrupt)`);
+          } else {
+            const dt = new Date(m.saved);
+            out.push(`  ${m.name.padEnd(20)} ${dt.toLocaleString("en", { month: "short" })} ${String(dt.getDate()).padStart(2, " ")} ${String(dt.getHours()).padStart(2, "0")}:${String(dt.getMinutes()).padStart(2, "0")}  ${String(m.files ?? "?")} files, ${fmtBytes(m.bytes ?? 0)}`);
+          }
+        }
+        out.push("", "restore: snapshot restore <name>  ·  delete: snapshot rm <name>");
+        return out;
+      }
+      if (sub === "restore") {
+        const name = ctx.args[1] ?? "";
+        if (!name) return err("usage: snapshot restore <name>");
+        const m = parseSnap(name);
+        if (!m) return err(`snapshot: '${name}' not found — try 'snapshot list'`);
+        if (!m.dump || typeof m.dump !== "string") return err(`snapshot: '${name}' is corrupt (no dump)`);
+        let parsed: unknown;
+        try { parsed = JSON.parse(m.dump); } catch { return err(`snapshot: '${name}' is corrupt (bad dump JSON)`); }
+        if (!parsed || (parsed as { type?: string }).type !== "dir") return err(`snapshot: '${name}' is corrupt (dump is not a filesystem)`);
+        /* safety: the PRE-RESTORE state must live inside the restored world,
+           otherwise swapping fs.root throws the safety copy away with the old fs */
+        const oldDump = ctx.fs.dump();
+        const oldStats = ctx.fs.countAll();
+        const d = ctx.now();
+        const safetyName = `pre-restore-${String(d.getHours()).padStart(2, "0")}${String(d.getMinutes()).padStart(2, "0")}${String(d.getSeconds()).padStart(2, "0")}`;
+        const probe = FS.load(m.dump);
+        probe.mkdirp(SNAP_DIR);
+        /* safety dump = the PRE-RESTORE world (stripped, snaps never nest), so restoring it undoes this restore */
+        probe.writeFile(`${SNAP_DIR}/${safetyName}.qsnap`, JSON.stringify({ name: safetyName, saved: new Date(d.getTime()).toISOString(), dump: stripSnaps(oldDump), files: oldStats.files, bytes: oldStats.bytes }));
+        /* cap enforcement inside the restored world */
+        const all = probe.list(SNAP_DIR).filter((n) => n.type === "file" && n.name.endsWith(".qsnap"));
+        if (all.length > SNAP_CAP) {
+          const metas = all.map((n) => {
+            try { return { file: n.name, m: JSON.parse((n as { content: string }).content) as { saved?: string } }; } catch { return { file: n.name, m: null }; }
+          }).filter((x) => x.m && typeof x.m.saved === "string" && x.file !== `${safetyName}.qsnap`)
+            .sort((a, b) => (a.m!.saved! === b.m!.saved! ? a.file.localeCompare(b.file) : a.m!.saved! < b.m!.saved! ? -1 : 1));
+          const excess = all.length - SNAP_CAP;
+          for (let i = 0; i < excess && i < metas.length; i++) probe.rm(`${SNAP_DIR}/${metas[i].file}`, false);
+        }
+        ctx.fs = probe;
+        return [`restored '${name}' — ${m.files ?? "?"} files back on line`, `(previous state auto-saved as '${safetyName}' — snapshot list to see it)`];
+      }
+      if (sub === "rm") {
+        const name = ctx.args[1] ?? "";
+        if (!name) return err("usage: snapshot rm <name>");
+        if (!snapNode(name)) return err(`snapshot: '${name}' not found`);
+        ctx.fs.rm(`${SNAP_DIR}/${name}.qsnap`, false);
+        return [`snapshot '${name}' deleted`];
+      }
+      return err("usage: snapshot save [name] · snapshot list · snapshot restore <name> · snapshot rm <name>");
     },
   },
 ];

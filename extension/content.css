@@ -1,0 +1,589 @@
+/* RizzReply — floating copilot styles. All classes prefixed rr- to avoid collisions with X.com */
+
+#rr-root {
+  position: fixed;
+  z-index: 2147483647;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Floating bubble */
+.rr-bubble {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: #fbbf24;
+  color: #000;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.rr-bubble:hover {
+  transform: scale(1.08);
+  background: #fcd34d;
+}
+.rr-bubble.rr-active {
+  background: #f59e0b;
+}
+.rr-bubble.rr-pulse {
+  animation: rr-pulse 1.6s ease-in-out 6;
+}
+@keyframes rr-pulse {
+  0%, 100% { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 0 0 rgba(251, 191, 36, 0.55); }
+  50% { box-shadow: 0 6px 20px rgba(0, 0, 0, 0.45), 0 0 0 14px rgba(251, 191, 36, 0); }
+}
+
+/* Panel */
+.rr-panel {
+  position: fixed;
+  right: 22px;
+  bottom: 86px;
+  width: 360px;
+  max-width: calc(100vw - 32px);
+  max-height: min(560px, calc(100vh - 120px));
+  display: flex;
+  flex-direction: column;
+  background: #0d0f12;
+  color: #f4f4f5;
+  border: 1px solid #27272a;
+  border-radius: 16px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  animation: rr-in 0.18s ease;
+}
+@keyframes rr-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.rr-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #27272a;
+  background: #131519;
+}
+.rr-title {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+}
+.rr-title span { color: #fbbf24; }
+.rr-ver {
+  font-style: normal;
+  font-size: 9px;
+  font-weight: 700;
+  color: #52525b;
+  margin-left: 7px;
+  vertical-align: middle;
+}
+.rr-close {
+  background: none;
+  border: none;
+  color: #71717a;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+.rr-close:hover { color: #f4f4f5; background: #27272a; }
+
+.rr-body {
+  padding: 12px 14px;
+  overflow-y: auto;
+}
+
+.rr-target {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.08);
+  border: 1px solid rgba(74, 222, 128, 0.25);
+  border-radius: 8px;
+  padding: 6px 9px;
+}
+.rr-agent {
+  width: 100%;
+  border: 1.5px solid #fbbf24;
+  border-radius: 12px;
+  background: transparent;
+  color: #fbbf24;
+  font-size: 13px;
+  font-weight: 800;
+  padding: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rr-agent:hover {
+  background: #fbbf24;
+  color: #000;
+}
+.rr-agent:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+/* v0.7.0 — agent row + changeable mission drawer */
+.rr-agent-row {
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+.rr-agent-row .rr-agent {
+  flex: 1;
+  min-width: 0;
+}
+.rr-agent-edit {
+  flex: 0 0 34px;
+  border: 1.5px solid #3d3223;
+  border-radius: 12px;
+  background: #191512;
+  color: #fbbf24;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.rr-agent-edit:hover {
+  border-color: #fbbf24;
+  background: #fbbf24;
+  color: #000;
+}
+.rr-agentbox {
+  margin: 2px 0 10px;
+  padding: 8px;
+  border: 1px solid #3d3223;
+  border-radius: 10px;
+  background: #191512;
+}
+.rr-agenthint {
+  margin: 0 0 7px;
+  font-size: 11px;
+  line-height: 1.45;
+  color: #a1a1aa;
+}
+.rr-agentchips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-bottom: 7px;
+}
+.rr-agentta {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  background: #0d0f12;
+  color: #f4f4f5;
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 7px 8px;
+  outline: none;
+}
+.rr-agentta:focus {
+  border-color: #fbbf24;
+}
+.rr-agentactions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 7px;
+}
+.rr-agentnote {
+  font-size: 10px;
+  color: #71717a;
+}
+
+.rr-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #71717a;
+  margin: 0 0 6px;
+}
+
+.rr-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  border: 1px solid #27272a;
+  border-radius: 10px;
+  background: #0d0f12;
+  color: #f4f4f5;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 10px;
+  outline: none;
+}
+.rr-textarea:focus { border-color: #fbbf24; }
+
+.rr-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.rr-pill {
+  border: 1px solid #27272a;
+  background: #18181b;
+  color: #a1a1aa;
+  border-radius: 999px;
+  padding: 5px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.rr-pill:hover { border-color: #52525b; }
+.rr-pill.rr-on {
+  border-color: #fbbf24;
+  color: #fbbf24;
+  background: rgba(251, 191, 36, 0.08);
+}
+
+.rr-go {
+  width: 100%;
+  border: none;
+  border-radius: 12px;
+  background: #fbbf24;
+  color: #000;
+  font-size: 14px;
+  font-weight: 800;
+  padding: 11px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.rr-go:hover { background: #fcd34d; }
+.rr-go:disabled { opacity: 0.55; cursor: wait; }
+
+.rr-err {
+  margin-top: 10px;
+  border: 1px solid #7f1d1d;
+  background: rgba(127, 29, 29, 0.25);
+  color: #fca5a5;
+  border-radius: 10px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.rr-card {
+  margin-top: 10px;
+  border: 1px solid #27272a;
+  border-radius: 12px;
+  background: #131519;
+  padding: 10px 12px;
+}
+.rr-card p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  color: #e4e4e7;
+}
+.rr-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.rr-meta {
+  font-size: 11px;
+  color: #71717a;
+}
+.rr-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rr-type {
+  border: none;
+  border-radius: 8px;
+  background: #fbbf24;
+  color: #000;
+  font-size: 12px;
+  font-weight: 800;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.rr-type:hover { background: #fcd34d; }
+.rr-type:disabled { opacity: 0.6; cursor: wait; }
+.rr-type.rr-done { background: #22c55e; color: #000; }
+
+.rr-copy {
+  border: none;
+  border-radius: 8px;
+  background: #27272a;
+  color: #e4e4e7;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+.rr-copy:hover { background: #fbbf24; color: #000; }
+.rr-copy.rr-done { background: #22c55e; color: #000; }
+
+.rr-empty {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #52525b;
+}
+
+/* ---- v0.5.0 — mini actions, regenerate row, drag-friendly bubble ---- */
+
+.rr-bubble {
+  touch-action: none;
+  user-select: none;
+}
+
+.rr-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rr-mini {
+  background: transparent;
+  border: 1px solid #3d3223;
+  color: #d4b572;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.rr-mini:hover {
+  background: #2a2318;
+  border-color: #6b5a35;
+}
+
+.rr-again {
+  width: 100%;
+  margin-top: 8px;
+  background: transparent;
+  border: 1px dashed #4a3f28;
+  color: #d4b572;
+  font-size: 12px;
+  padding: 7px 10px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.rr-again:hover {
+  background: #241e13;
+  border-color: #6b5a35;
+}
+
+/* ---- v0.6.0 — tools row, bio memory, length dial, per-variant re-roll, history ---- */
+
+.rr-tools {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.rr-biobtn.rr-has-bio {
+  border-color: #fbbf24;
+  color: #fbbf24;
+}
+
+.rr-biobox {
+  margin: 2px 0 10px;
+  padding: 8px;
+  border: 1px solid #3d3223;
+  border-radius: 10px;
+  background: #191512;
+}
+
+.rr-biohint {
+  font-size: 11px;
+  color: #8a7a5c;
+  margin: 0 0 6px;
+  line-height: 1.45;
+}
+
+.rr-biota {
+  width: 100%;
+  box-sizing: border-box;
+  background: #0e0c09;
+  border: 1px solid #3d3223;
+  border-radius: 8px;
+  color: #f4f4f5;
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 8px;
+  resize: vertical;
+}
+
+.rr-bioactions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.rr-reroll {
+  background: transparent;
+  border: 1px solid #3d3223;
+  color: #d4b572;
+  border-radius: 8px;
+  padding: 5px 9px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.rr-reroll:hover { background: #fbbf24; color: #000; }
+.rr-reroll:disabled { opacity: 0.5; cursor: default; }
+
+.rr-history {
+  margin: 2px 0 10px;
+  border: 1px solid #3d3223;
+  border-radius: 10px;
+  background: #141210;
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.rr-hist-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.rr-hist-top strong {
+  font-size: 11px;
+  color: #d4b572;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.rr-hist-empty {
+  font-size: 12px;
+  color: #52525b;
+  margin: 4px 0;
+}
+
+.rr-hist-item {
+  border-top: 1px solid #2a2318;
+  padding: 6px 0;
+}
+.rr-hist-item:first-of-type { border-top: 0; }
+
+.rr-hist-head {
+  font-size: 10px;
+  color: #8a7a5c;
+  margin: 0 0 2px;
+}
+
+.rr-hist-src {
+  font-size: 11px;
+  color: #a1a1aa;
+  margin: 0 0 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rr-hist-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 3px 0;
+}
+
+.rr-hist-row span {
+  font-size: 12px;
+  color: #e4e4e7;
+  line-height: 1.4;
+  flex: 1;
+}
+
+.rr-hist-row .rr-mini { margin-top: 1px; }
+
+/* v0.9.0 — batch queue drawer (mirrors history) + tools-row badge */
+.rr-queue {
+  margin: 2px 0 10px;
+  border: 1px solid #233447;
+  border-radius: 10px;
+  background: #10141a;
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.rr-queue .rr-hist-top strong { color: #7cc4ff; }
+
+.rr-queue .rr-hist-top span {
+  display: flex;
+  gap: 4px;
+}
+
+.rr-queue .rr-hist-row span {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rr-qbadge {
+  color: #7cc4ff;
+  font-weight: 700;
+}
+
+/* v0.10.0 — ⭐ vault drawer (mirrors history, amber tint) + star buttons */
+.rr-vault {
+  margin: 2px 0 10px;
+  border: 1px solid #4a3b1d;
+  border-radius: 10px;
+  background: #16130d;
+  padding: 8px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.rr-vbadge {
+  color: #ffd166;
+  font-weight: 700;
+}
+
+.rr-star {
+  border: 1px solid #3f3f46;
+  background: #1c1c21;
+  color: #a1a1aa;
+  border-radius: 8px;
+  min-width: 30px;
+  padding: 4px 7px;
+  font-size: 13px;
+  line-height: 1.2;
+  cursor: pointer;
+}
+.rr-star:hover {
+  border-color: #ffd166;
+  color: #ffd166;
+}
+.rr-star.rr-on {
+  border-color: #ffd166;
+  background: rgba(255, 209, 102, 0.12);
+}
+.rr-hist-row .rr-star {
+  margin-top: 1px;
+  margin-right: 4px;
+}
+

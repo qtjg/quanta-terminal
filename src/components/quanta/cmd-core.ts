@@ -1,8 +1,8 @@
 /* QUANTA core commands: help clear echo date whoami hostname uname uptime
    history alias unalias env export which man sudo exit theme */
 
-import { CmdCtx, CmdDef, err, helpFor, fmtUptime } from "./core";
-import { HOME_PATH } from "./fs";
+import { CmdCtx, CmdDef, err, helpFor, fmtUptime, contentLines } from "./core";
+import { HOME_PATH, isDir } from "./fs";
 import { wrapText } from "./text-tools";
 
 const THEMES = ["carbon", "matrix", "amber", "ocean", "light"] as const; /* "carbon" (was "tokyo") */
@@ -166,7 +166,90 @@ export const CORE_COMMANDS: CmdDef[] = [
       return []; // cd is handled specially by the dispatcher (needs cwd mutation)
     },
   },
+  {
+    name: "script", cat: "core", desc: ".qsh scripting — run real command files from the VFS", usage: "script run [-k] <file> · script list · script demo",
+    run: async (ctx) => {
+      const sub = ctx.args[0] ?? "";
+      if (sub === "run") {
+        let keepGoing = false;
+        let file = ctx.args[1] ?? "";
+        if (file === "-k") { keepGoing = true; file = ctx.args[2] ?? ""; }
+        if (!file) return err("usage: script run [-k] <file.qsh>");
+        return runScriptFile(ctx, file, keepGoing);
+      }
+      if (sub === "list") {
+        const spots = [ctx.cwd, `${HOME_PATH}/scripts`, HOME_PATH].filter((v, i, a) => a.indexOf(v) === i);
+        const found = new Map<string, string>();
+        for (const dir of spots) {
+          for (const n of ctx.fs.list(dir)) {
+            if (n.type === "file" && n.name.endsWith(".qsh") && !found.has(n.name)) found.set(n.name, `${dir}/${n.name}`);
+          }
+        }
+        if (!found.size) return ["(no .qsh scripts found — try 'script demo' to generate one)"];
+        return [`found ${found.size} script${found.size > 1 ? "s" : ""}:`, ...[...found.entries()].map(([n, p]) => `  ${n}  →  ${p}`)];
+      }
+      if (sub === "demo") {
+        const dir = ctx.fs.mkdirp(`${HOME_PATH}/scripts`);
+        if (!dir) return err("script: cannot create ~/scripts");
+        const demo = [
+          "# QUANTA demo script — every line is a real command",
+          "export GREETING=hello-quanta",
+          "echo $GREETING from the script engine",
+          "date",
+          "calc 2^10/4 + sqrt(144)",
+          "seq 1 5",
+          "factor 987654",
+        ].join("\n") + "\n";
+        ctx.fs.writeFile(`${HOME_PATH}/scripts/demo.qsh`, demo);
+        const out = ["wrote ~/scripts/demo.qsh (edit it: echo 'cmd' >> ~/scripts/demo.qsh)", ""];
+        return [...out, ...(await runScriptFile(ctx, `${HOME_PATH}/scripts/demo.qsh`, false))];
+      }
+      return err("usage: script run [-k] <file> · script list · script demo");
+    },
+  },
 ];
+
+/* ---------- script engine (v0.7) ---------- */
+
+const SCRIPT_DEPTH = { n: 0 };
+const SCRIPT_MAX_LINES = 200;
+
+/** execute a .qsh file: one command per line, '#' comments, $VARS expand via env.
+ *  stops at the first failing command (output line starting 'quanta: ') unless keepGoing. */
+async function runScriptFile(ctx: CmdCtx, path: string, keepGoing: boolean): Promise<string[]> {
+  const abs = ctx.fs.resolve(ctx.cwd, path);
+  const node = ctx.fs.get(abs);
+  if (!node) return err(`script: ${path}: no such file or directory`);
+  if (isDir(node)) return err(`script: ${path}: is a directory`);
+  if (SCRIPT_DEPTH.n >= 2) return err("script: nesting too deep (max 2) — recursive script?");
+  const lines = contentLines(node.content).map((l) => l.trim()).filter((l) => l && !l.startsWith("#"));
+  if (!lines.length) return err(`script: ${path}: no commands (empty or comments only)`);
+  if (lines.length > SCRIPT_MAX_LINES) return err(`script: ${path}: too many commands (${lines.length}, max ${SCRIPT_MAX_LINES})`);
+  if (!ctx.exec) return err("script: executor unavailable in this context");
+  SCRIPT_DEPTH.n++;
+  const out: string[] = [`┌─ script ${node.name} — ${lines.length} command${lines.length > 1 ? "s" : ""}`];
+  const t0 = Date.now();
+  let okN = 0, failN = 0;
+  try {
+    for (let i = 0; i < lines.length; i++) {
+      const cmdline = lines[i];
+      out.push(`│ [${i + 1}/${lines.length}] $ ${cmdline}`);
+      let res: string[];
+      try { res = await ctx.exec(cmdline); }
+      catch (e) { res = [`quanta: ${e instanceof Error ? e.message : String(e)}`]; }
+      out.push(...res.map((l) => `│ ${l}`));
+      if (res.some((l) => l.startsWith("quanta: "))) {
+        failN++;
+        if (!keepGoing) {
+          out.push(`└─ stopped at command ${i + 1} — ${okN} ok, ${failN} failed (script run -k <file> keeps going)`);
+          return out;
+        }
+      } else okN++;
+    }
+  } finally { SCRIPT_DEPTH.n--; }
+  out.push(`└─ done in ${Date.now() - t0}ms — ${okN} ok, ${failN} failed`);
+  return out;
+}
 
 /* filled by commands.ts after registry merge — avoids circular import */
 export let CMD_MAP_REF: Map<string, CmdDef> = new Map();

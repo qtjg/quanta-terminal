@@ -4,7 +4,7 @@
 
 ### *The AI-Native Linux Terminal — in your browser*
 
-**117 real commands · multi-provider AI routing · security toolkit · developer tools · persistent virtual filesystem**
+**119 real commands · multi-provider AI routing · security toolkit · developer tools · persistent virtual filesystem**
 
 [![Next.js](https://img.shields.io/badge/Next.js-App_Router-000000?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
@@ -27,7 +27,7 @@
 - [What is QUANTA?](#-what-is-quanta)
 - [Feature Matrix](#-feature-matrix)
 - [Quick Start](#-quick-start)
-- [The Command Catalog — 117 Commands](#-the-command-catalog--117-commands)
+- [The Command Catalog — 119 Commands](#-the-command-catalog--119-commands)
 - [AI Engine & OmniRoute](#-ai-engine--omniroute)
 - [Security Toolkit](#-security-toolkit)
 - [Real Network](#-real-network)
@@ -67,14 +67,16 @@ The root route **is** the terminal. One product, zero distraction.
 
 | | Feature | Status |
 |:---:|---|:---:|
-| 🖥️ | **117 slash commands** — core, filesystem, text, sys, net, AI, security, dev, fun | ✅ |
+| 🖥️ | **119 slash commands** — core, filesystem, text, sys, net, AI, security, dev, fun | ✅ |
 | 🧠 | **Live AI engine** — real LLM round-trips, multi-provider, pipes, audit trail | ✅ |
 | 🛣️ | **OmniRoute** — task classification → best free model → automatic fallback chain | ✅ |
 | 🔐 | **Security toolkit** — JWT audit, recon, hashing, ciphers, password entropy | ✅ |
 | 💾 | **Persistent VFS** — files, history, theme survive full page reloads | ✅ |
 | 🔌 | **Unix pipes** — `cat notes.txt \| grep TODO \| wc -l` actually works | ✅ |
 | 🎨 | **5 themes** — carbon · matrix · amber · ocean · light | ✅ |
-| 📱 | **Mobile ready** — touch keyboard support, responsive TTY layout | ✅ |
+| 📱 | **Mobile ready + PWA** — installable app (Add to Home Screen), touch keyboard, responsive TTY layout | ✅ |
+| 📜 | **Scripting** — `.qsh` command files: comments, `$VARS`, stop-on-error, nesting guard | ✅ |
+| ⏮️ | **VFS time machine** — `snapshot` save/restore the whole filesystem (auto pre-restore safety) | ✅ |
 | ⚡ | **Lean stack** — 5 runtime deps, zero database required | ✅ |
 
 ## ⚡ Quick Start
@@ -92,7 +94,7 @@ bun run dev
 Open **`http://localhost:3000`** and type:
 
 ```text
-help                → the full 117-command index
+help                → the full 119-command index
 neofetch            → system summary card
 ai explain pipes    → AI explains unix pipes
 omniroute on        → enable automatic model routing
@@ -102,7 +104,7 @@ theme matrix        → there is no spoon
 
 > **Zero-config AI:** with no API keys at all, the built-in gateway lane still works. Add any provider key (`.env`) and OmniRoute immediately unlocks that provider's free-model catalog.
 
-## 📚 The Command Catalog — 117 Commands
+## 📚 The Command Catalog — 119 Commands
 
 <details open>
 <summary><b>🧠 AI — 11 commands</b> (the headliner)</summary>
@@ -124,7 +126,7 @@ theme matrix        → there is no spoon
 </details>
 
 <details open>
-<summary><b>🖥️ Core — 19 commands</b></summary>
+<summary><b>🖥️ Core — 20 commands</b></summary>
 
 | Command | | Command | | Command | |
 |---|---|---|---|---|---|
@@ -134,12 +136,12 @@ theme matrix        → there is no spoon
 | `hostname` | print machine hostname | `man` | manual page for a command | `motd` | message of the day |
 | `sudo` | elevated run (honestly: same sandbox) | `theme` | list or switch terminal theme | `unalias` | remove an alias |
 | `uname` | system information | `uptime` | session uptime + load | `which` | locate a command |
-| `whoami` | print current user |  |  |  |  |
+| `whoami` | print current user | `script` | .qsh scripting — run command files |  |  |
 
 </details>
 
 <details>
-<summary><b>📁 Filesystem — 29 commands</b></summary>
+<summary><b>📁 Filesystem — 30 commands</b></summary>
 
 | Command | | Command | | Command | |
 |---|---|---|---|---|---|
@@ -152,7 +154,7 @@ theme matrix        → there is no spoon
 | `rm` | remove file or directory (-r recursive, -f force) | `rmdir` | remove an empty directory | `sort` | sort lines (file or pipe) |
 | `split` | split a file into N-line chunks (xaa, xab, …) | `stat` | file metadata | `tail` | last N lines (file or pipe) |
 | `touch` | create an empty file / bump mtime | `tree` | recursive directory tree | `uniq` | drop consecutive duplicate lines (file or pipe) |
-| `wc` | count lines/words/chars (file or pipe) | `write` | write text into a file (VFS) |  |  |
+| `wc` | count lines/words/chars (file or pipe) | `write` | write text into a file (VFS) | `snapshot` | filesystem time machine — save/restore |
 
 </details>
 
@@ -308,7 +310,7 @@ flowchart TB
         CB["Cerebras"]
         WT["wttr.in"]
     end
-    T -->|"pipes · VFS · 117 cmds"| LS[("localStorage<br/>fs · theme · history")]
+    T -->|"pipes · VFS · 119 cmds"| LS[("localStorage<br/>fs · theme · history")]
     T --> F --> WT
     T --> C --> OR & GQ & GM & CB
     T --> M
@@ -338,7 +340,7 @@ bun scripts/test-quanta.ts
 ```
 
 ```text
-✓ 369 assertions across 117 commands — ALL GREEN
+✓ 391 assertions across 119 commands — ALL GREEN
   ├─ core / fs / text / sys / fun      (engine + VFS persistence)
   ├─ ai / omniroute                    (live model round-trips, routing telemetry)
   ├─ sec / net                         (real DNS, RDAP, real fetches)
@@ -368,7 +370,7 @@ Tracked on the [issue tracker](https://github.com/qtjg/quanta-terminal/issues) �
 - [ ] Push notifications for long-running AI jobs — [#2](https://github.com/qtjg/quanta-terminal/issues/2)
 - [ ] Mobile soft-keyboard UX polish — [#3](https://github.com/qtjg/quanta-terminal/issues/3)
 - [ ] WebSocket collaborative sessions — [#4](https://github.com/qtjg/quanta-terminal/issues/4)
-- [ ] Scriptable `.quanta` scripts (run command files)
+- [x] ~~Scriptable `.quanta` scripts (run command files)~~ — shipped v0.7.0 as `script` (.qsh files, stop-on-error, -k keep-going)
 - [x] ~~Dev tools category: `pw`, `base`, `ts`, `color`, `csv`, `cron`~~ — shipped in v0.6.0
 
 Also accepting: [VFS snapshot export/import](https://github.com/qtjg/quanta-terminal/issues/5) · [history autosuggestions](https://github.com/qtjg/quanta-terminal/issues/6) · [AI pipe support](https://github.com/qtjg/quanta-terminal/issues/7) · [PWA offline hardening](https://github.com/qtjg/quanta-terminal/issues/8) · [visual regression suite](https://github.com/qtjg/quanta-terminal/issues/9) · [session persistence](https://github.com/qtjg/quanta-terminal/issues/10)

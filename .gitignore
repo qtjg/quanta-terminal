@@ -78,3 +78,19 @@ server.log
 /prompts/
 # separate project workspace (own git repo, not part of quanta-terminal)
 /telegram-bot/
+
+# android/sdk build artifacts & signing keys (local-only, auto-regenerated)
+/android-sdk/
+/apkbuild/
+/scripts/android-build/
+/android/RizzFloat/build/
+/android/RizzFloat/classes/
+/android/RizzFloat/gen/
+*.keystore
+
+# agent/runtime artifacts
+/dev.log
+/worklog.md
+/download/
+/upload/
+/agent-ctx/

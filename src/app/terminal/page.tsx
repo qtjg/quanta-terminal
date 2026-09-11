@@ -6,6 +6,9 @@ export const metadata: Metadata = {
   title: { absolute: "QUANTA — AI-Native Linux Terminal" },
   description:
     "Quanta is an AI-native terminal environment: a real command engine with a persistent virtual filesystem and a live AI gateway.",
+  manifest: "/manifest.webmanifest",
+  icons: { icon: "/icon.svg", apple: "/icon.svg" },
+  appleWebApp: { capable: true, statusBarStyle: "black-translucent", title: "QUANTA" },
   openGraph: {
     title: "QUANTA — AI-Native Linux Terminal",
     description:

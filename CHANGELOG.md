@@ -2,6 +2,31 @@
 
 All notable changes to QUANTA are documented here. Versions follow semver.
 
+## [0.7.0] — 2026-09-11
+
+The "automation" release: **2 new commands** (117 → 119) — a real scripting engine and a filesystem time machine — plus PWA installability on mobile.
+
+### Added — Scripting
+- `script` — run real `.qsh` command files from the VFS: one command per line, `#` comments, `$VAR` expansion via `export`, pipes/redirects work per line
+- `script demo` — generates + runs a sample script; `script list` — finds `.qsh` in cwd/home/~/scripts
+- Stop-on-error by default (honest `N ok, M failed` footer), `script run -k <file>` keeps going, nesting capped at depth 2, 200-command cap per file
+
+### Added — Filesystem
+- `snapshot` — save/restore point-in-time copies of the whole VFS: `save [name]` (auto-name, 5-slot FIFO cap), `list`, `restore <name>`, `rm <name>`
+- Restore always injects an auto `pre-restore-*` safety snapshot into the restored world (undo-safe), corrupt dumps are rejected, 2 MB size guard
+- Snapshot dumps exclude `/var/snapshots` itself — snapshots never nest (prevents exponential dump growth)
+
+### Added — PWA
+- Web manifest (`/manifest.webmanifest`) + SVG icons (any + maskable) — QUANTA now installs to home screen / desktop as a standalone app
+- `apple-web-app` meta: capable, black-translucent status bar
+
+### Changed
+- Test suite pacing is adaptive (waits only the remaining gap since the last LLM call); `QUANTA_TEST_PACE_MS` env override for fast runs — full suite drops from ~12 min to ~2.5 min
+- README: 119-command catalog, scripting/snapshot/PWA feature rows, roadmap tick (scriptable scripts)
+
+### Fixed
+- Snapshot cap eviction comparator was unstable for same-second timestamps (could evict the wrong slot)
+
 ## [0.6.0] — 2026-09-10
 
 The "power tooling" release: **32 new commands** (85 → 117), a new **dev tools** category, and full test coverage for every addition.

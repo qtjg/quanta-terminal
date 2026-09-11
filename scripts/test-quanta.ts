@@ -40,7 +40,16 @@ async function last(line: string): Promise<string> {
 async function main() {
   const BASE = "http://127.0.0.1:3000";
   const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
-  const llmPace = () => pause(50000); // LLM gateway: per-minute quota
+  // LLM gateway: per-minute quota. Adaptive pacing: only wait the REMAINING gap
+  // since the last LLM call (live calls themselves take 0.3–1.5s each).
+  // Override with QUANTA_TEST_PACE_MS=4000 for a fast (~2 min) full run.
+  const PACE_MS = Number(process.env.QUANTA_TEST_PACE_MS ?? 50000);
+  let lastLlmAt = 0;
+  const llmPace = async () => {
+    const gap = Date.now() - lastLlmAt;
+    if (lastLlmAt > 0 && gap < PACE_MS) await pause(PACE_MS - gap);
+    lastLlmAt = Date.now();
+  };
 
   console.log(`\nQUANTA full-coverage test — ${ALL_COMMANDS.length} commands registered\n`);
 
@@ -741,6 +750,68 @@ async function main() {
   if (tr.some((l) => l.includes("429"))) { await llmPace(); tr = await run("translate hi the terminal is ready"); }
   ok("translate: live frame + target lang", tr.some((l) => l.includes("→ hi")) && tr.some((l) => l.startsWith("┌─")), tr.join(" | ").slice(0, 140));
   ok("translate: non-latin output served", tr.some((l) => /[\u0900-\u097F]/.test(l)), tr.join(" | ").slice(0, 140));
+
+  /* ============ v0.7: SCRIPT ENGINE + SNAPSHOTS ============ */
+  console.log("── v0.7: script engine + snapshots ──");
+  await run("cd ~");
+
+  /* ---- script demo: generate + execute ---- */
+  const demo = await run("script demo");
+  ok("script demo: writes file + runs", demo.some((l) => l.includes("wrote ~/scripts/demo.qsh")) && demo.some((l) => l.includes("┌─ script demo.qsh")), demo.join(" | ").slice(0, 160));
+  ok("script demo: comments stripped (6 cmds)", demo.some((l) => l.includes("6 commands")), demo.join(" | ").slice(0, 120));
+  ok("script demo: $VAR expands across lines", demo.some((l) => l.includes("hello-quanta from the script engine")), demo.join(" | ").slice(0, 160));
+  ok("script demo: clean completion line", demo.some((l) => /└─ done in \d+ms — 6 ok, 0 failed/.test(l)), demo.join(" | ").slice(0, 160));
+
+  /* ---- script list ---- */
+  ok("script list: finds demo.qsh", (await run("script list")).some((l) => l.includes("demo.qsh")));
+
+  /* ---- user-authored script via redirect + pipes still work per line ---- */
+  await run("echo echo scripted-hello > hello.qsh");
+  const hello = await run("script run hello.qsh");
+  ok("script run: user script executes", hello.some((l) => l.includes("scripted-hello")), hello.join(" | ").slice(0, 120));
+
+  /* ---- stop-on-error (default) ---- */
+  await run("echo echo step-one-ok > bad.qsh");
+  await run("echo nosuchcmd-xyz >> bad.qsh");
+  await run("echo echo step-three-skipped >> bad.qsh");
+  const bad = await run("script run bad.qsh");
+  ok("script: stop-on-error default", bad.some((l) => l.includes("step-one-ok")) && bad.some((l) => l.includes("stopped at command 2")), bad.join(" | ").slice(0, 160));
+  ok("script: later lines NOT run on error", !bad.some((l) => l.includes("step-three-skipped")), bad.join(" | ").slice(0, 200));
+
+  /* ---- -k keep-going ---- */
+  const badK = await run("script run -k bad.qsh");
+  ok("script -k: keeps going after failure", badK.some((l) => l.includes("step-three-skipped")) && /2 ok, 1 failed/.test(badK[badK.length - 1] ?? ""), badK.join(" | ").slice(0, 200));
+
+  /* ---- recursion guard ---- */
+  await run("echo script run loop.qsh > loop.qsh");
+  const loop = await run("script run loop.qsh");
+  ok("script: recursion depth capped", loop.some((l) => l.includes("nesting too deep")), loop.join(" | ").slice(0, 160));
+
+  /* ---- missing file / dir guard ---- */
+  ok("script: missing file honest error", (await run("script run nope.qsh")).some((l) => l.includes("no such file")));
+  ok("script: directory refused", (await run("script run ~/scripts")).some((l) => l.includes("is a directory")));
+
+  /* ---- snapshot: roundtrip save → mutate → restore ---- */
+  await run("echo original-content > snapdata.txt");
+  const sv = await run("snapshot save mysnap");
+  ok("snapshot save: acknowledges", sv.some((l) => l.includes("snapshot 'mysnap' saved")), sv.join(" | ").slice(0, 120));
+  await run("echo changed-content > snapdata.txt");
+  ok("snapshot: mutation visible before restore", (await run("cat snapdata.txt")).some((l) => l.includes("changed-content")));
+  const rs = await run("snapshot restore mysnap");
+  ok("snapshot restore: acknowledged", rs.some((l) => l.includes("restored 'mysnap'")), rs.join(" | ").slice(0, 120));
+  ok("snapshot restore: data rolled back", (await run("cat snapdata.txt")).some((l) => l.includes("original-content")));
+  const safetyName = (rs.map((l) => l.match(/pre-restore-\d+/)?.[0]).find(Boolean)) ?? "";
+  ok("snapshot restore: auto pre-restore safety kept", safetyName !== "" && (await run("snapshot list")).some((l) => l.includes(safetyName)), rs.join(" | ").slice(0, 160));
+
+  /* ---- snapshot: rm + name guard + cap ---- */
+  ok("snapshot rm: deletes", (await run(`snapshot rm ${safetyName}`)).some((l) => l.includes("deleted")));
+  ok("snapshot rm: missing honest error", (await run(`snapshot rm ${safetyName}`)).some((l) => l.includes("not found")));
+  ok("snapshot: bad name refused", (await run("snapshot save bad~name")).some((l) => l.includes("name must be")));
+  await run("snapshot save c1"); await run("snapshot save c2"); await run("snapshot save c3");
+  await run("snapshot save c4"); await run("snapshot save c5"); await run("snapshot save c6");
+  const capped = await run("snapshot list");
+  ok("snapshot cap: never exceeds 5 slots", capped.some((l) => l.includes("5/5 slots used")), capped.join(" | ").slice(0, 160));
+  ok("snapshot cap: oldest evicted (c1 gone)", !capped.some((l) => l.includes("c1")), capped.slice(0, 4).join(" | ").slice(0, 160));
 
   /* ============ SUMMARY ============ */
   console.log(`\n${"═".repeat(52)}`);
