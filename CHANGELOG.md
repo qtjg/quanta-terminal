@@ -4,6 +4,15 @@ All notable changes to QUANTA are documented here. Versions follow semver.
 
 ## [Unreleased]
 
+### Added — Ops tooling
+- `scripts/healthcheck.sh` — production-style local probe (`OK 200` / `DOWN <code>`) with clean exit codes; `npm run healthcheck`
+- `scripts/contrib-stats.sh` — per-author commit stats from the GitHub API (login + email breakdown, graph-rules reference); `npm run contrib-stats`
+- `scripts/verify-attribution.sh` — flags default-branch commits whose author/committer email does not match the linked identity
+- `scripts/sync-check.sh` — one-line local/origin drift verdict (SYNCED / AHEAD / BEHIND / DIVERGED) for multi-workflow safety
+- `scripts/repo-audit.sh` — runs the ops trio (sync → attribution → app health) as a single report
+- `scripts/healthcheck.test.sh` — shell self-test covering 200 / 500 / dead-port / bad-arg paths
+- `package.json` now declares `engines` (node ≥ 18) and `contributors`
+
 ### Added — Documentation wave
 - `docs/ARCHITECTURE.md` — deep-dive on the engine layers, VFS, OmniRoute routing plane and security plane, with contributor-oriented invariants (no canned output, pipeline contract)
 - `docs/DEVELOPMENT.md` — setup, scripts, test harness guide, project layout map, command-authoring walkthrough and release flow
