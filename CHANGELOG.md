@@ -2,6 +2,19 @@
 
 All notable changes to QUANTA are documented here. Versions follow semver.
 
+## [Unreleased]
+
+### Added — Documentation wave
+- `docs/ARCHITECTURE.md` — deep-dive on the engine layers, VFS, OmniRoute routing plane and security plane, with contributor-oriented invariants (no canned output, pipeline contract)
+- `docs/DEVELOPMENT.md` — setup, scripts, test harness guide, project layout map, command-authoring walkthrough and release flow
+- `docs/AI-ROUTING.md` — how OmniRoute classifies tasks (`code`/`math`/`translate`/`summarize`/`general`), walks `ROUTE_PROVIDER_ORDER`, and keeps provider keys server-side
+- `docs/KEYBINDINGS.md` — the real input-handler bindings (`Enter`, `↑/↓`, `Tab`, `Ctrl-L`, `Ctrl-C`) and their semantics
+- `docs/FAQ.md` — answers for data storage, key hygiene, providers, piping and the satellite projects
+- `ROADMAP.md` — living roadmap (shipped / next / mid-term / satellites / community / non-goals), merged via PR #11
+
+### Changed
+- README now cross-links the project docs next to the table of contents
+
 ## [0.7.1] — 2026-09-11
 
 ### Fixed — RizzReply quota-proofing (v0.10.2 brain)
