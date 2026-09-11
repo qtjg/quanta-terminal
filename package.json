@@ -1,7 +1,7 @@
 {
   "name": "quanta-terminal",
   "version": "0.7.1",
-  "description": "QUANTA \u2014 AI-native Linux terminal in the browser: 117 real commands, multi-provider AI routing (OmniRoute), security toolkit, persistent VFS.",
+  "description": "QUANTA — AI-native Linux terminal in the browser: 117 real commands, multi-provider AI routing (OmniRoute), security toolkit, persistent VFS.",
   "author": "MAYANK (qtjg)",
   "license": "MIT",
   "homepage": "https://github.com/qtjg/quanta-terminal#readme",
@@ -30,7 +30,9 @@
     "build": "next build && cp -r .next/static .next/standalone/.next/ && cp -r public .next/standalone/",
     "start": "NODE_ENV=production bun .next/standalone/server.js 2>&1 | tee server.log",
     "lint": "eslint .",
-    "test": "bun scripts/test-quanta.ts"
+    "test": "bun scripts/test-quanta.ts",
+    "healthcheck": "sh scripts/healthcheck.sh",
+    "contrib-stats": "sh scripts/contrib-stats.sh"
   },
   "dependencies": {
     "lucide-react": "0.525.0",
