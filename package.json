@@ -53,5 +53,11 @@
     "tailwindcss": "^4",
     "tw-animate-css": "^1.3.5",
     "typescript": "^5"
-  }
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "contributors": [
+    "MAYANK Bhaskar <317509829+qtjg@users.noreply.github.com>"
+  ]
 }
