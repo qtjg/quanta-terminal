@@ -2,6 +2,13 @@
 
 All notable changes to QUANTA are documented here. Versions follow semver.
 
+## [0.7.1] — 2026-09-11
+
+### Fixed — RizzReply quota-proofing (v0.10.2 brain)
+- **Model rotation**: every AI attempt now rides a different gateway model slot (sticky preference for the last slot that served); if per-model quota buckets exist this multiplies effective capacity, and it costs nothing when the bucket is global
+- Failure copy now tells the truth: retries across all model slots (~4 min of invisible patience) before surfacing an error
+- New `x-rizz-ai-model` response header (which slot served) alongside `x-rizz-ai-retries`
+
 ## [0.7.0] — 2026-09-11
 
 The "automation" release: **2 new commands** (117 → 119) — a real scripting engine and a filesystem time machine — plus PWA installability on mobile.

@@ -62,6 +62,27 @@ import ZAI from "z-ai-web-dev-sdk";
 
 export const runtime = "nodejs";
 
+// v0.10.1 UNLIMITED: module-level single-flight queue for the one shared AI
+// lane. Every upstream attempt chains behind the previous one — concurrent
+// generations take turns instead of stampeding a small per-minute quota.
+let aiChain: Promise<unknown> = Promise.resolve();
+
+// v0.10.2 QUOTA-PROOF: the gateway quota is platform-shared and a busy window
+// can outlast any single-model wait. Each attempt now rides a DIFFERENT model
+// off a rotation chain (the SDK accepts `model`); the last slot that actually
+// served an answer is preferred first on the next request. If per-model quota
+// buckets exist this multiplies capacity; if the bucket is global it costs
+// nothing. Override the chain with RIZZ_MODEL_CHAIN (comma-separated).
+let rizzPreferredModel: string | undefined;
+const RIZZ_MODEL_CHAIN: Array<string | undefined> = [
+  undefined,
+  "glm-4-flash-250414",
+  "glm-4.5-air",
+  "glm-4-flashx",
+  "glm-4-plus",
+  "glm-4.6",
+];
+
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
@@ -551,8 +572,9 @@ export async function POST(req: NextRequest) {
     // the user's own draft, and a provided bio makes first-person claims real.
     const lintEligible = mode !== "hook" && !bio;
 
-    const ask = (extra?: string) =>
+    const ask = (extra: string | undefined, model: string | undefined) =>
       zai.chat.completions.create({
+        ...(model ? { model } : {}),
         messages: [
           { role: "system", content: prompt.system },
           {
@@ -563,10 +585,72 @@ export async function POST(req: NextRequest) {
         thinking: { type: "enabled" },
       });
 
+    // v0.10.1 UNLIMITED (personal deployment): upstream AI quota (429) windows
+    // are ridden out INVISIBLY instead of erroring. The request waits and
+    // retries until the provider's per-minute quota resets — from the user's
+    // point of view generation is unlimited, just occasionally slower.
+    // Patience is env-tunable: RIZZ_AI_RETRIES (default 7 → ~4 min total,
+    // sized to stay under typical browser/proxy idle timeouts).
+    const RETRY_DELAYS_MS = [8_000, 15_000, 25_000, 35_000, 45_000, 52_000, 60_000];
+    const maxRetries = Math.max(
+      0,
+      Number(process.env.RIZZ_AI_RETRIES ?? RETRY_DELAYS_MS.length)
+    );
+    const isTransient = (m: string) =>
+      /429|too many requests|quota|rate\s*limit|timeout|timed out|5\d\d|econn|fetch failed|network|socket/i.test(
+        m
+      );
+    // Single-flight: concurrent generations SERIALIZE on the one shared AI
+    // lane instead of racing each other for quota slots (parallel retries
+    // self-saturate a small per-minute window). Each attempt takes a ticket;
+    // backoff sleeps happen OFF the queue so the next queued attempt — from
+    // this or another waiting request — can seize the window the moment it
+    // resets.
+    let aiRetries = 0;
+    let servedModel: string | undefined;
+    // v0.10.2: attempt N rides models[attempt % models.length] — the sticky
+    // preferred slot first, then the rest of the rotation chain. The queue
+    // ticket is per-ATTEMPT; backoff sleeps happen OFF the queue so the next
+    // queued attempt — this or another waiting request — can seize the window
+    // the moment it resets.
+    const models: Array<string | undefined> = [
+      rizzPreferredModel,
+      ...RIZZ_MODEL_CHAIN.filter((m) => m !== rizzPreferredModel),
+    ];
+    const askWithRetry = async (extra?: string) => {
+      for (let attempt = 0; ; attempt++) {
+        const model = models[attempt % models.length];
+        try {
+          const run = aiChain.then(
+            () => ask(extra, model),
+            () => ask(extra, model)
+          );
+          aiChain = run.then(
+            () => undefined,
+            () => undefined
+          );
+          const completion = await run;
+          rizzPreferredModel = model; // sticky: this slot worked
+          servedModel = model;
+          return completion;
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : String(err);
+          if (!isTransient(msg) || attempt >= maxRetries) throw err;
+          aiRetries += 1;
+          await new Promise((r) =>
+            setTimeout(
+              r,
+              RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)]
+            )
+          );
+        }
+      }
+    };
+
     // Pass 1, then ONE self-correcting retry if the linters catch invented
     // claims, zero-overlap filler, or planning-notes meta leak. Whichever
     // attempt has fewer violations wins.
-    let completion = await ask();
+    let completion = await askWithRetry();
     // v0.9.0: lift the NEXT: follow-up line out before parsing so it can
     // never surface as a variant.
     let ex = extractNextMove(completion.choices[0]?.message?.content ?? "");
@@ -626,7 +710,7 @@ export async function POST(req: NextRequest) {
           fixes.push(
             "parts of your output were planning notes / meta commentary (tone reasoning, STEP references, 'Variant' headers) instead of ready-to-post replies — output ONLY the final replies separated by ---, no reasoning, no labels, no headers."
           );
-        completion = await ask(
+        completion = await askWithRetry(
           `IMPORTANT correction: your previous draft had ${fixes.join(" and ")}. Regenerate ${countWord(count)} that directly engage the tweet's exact content — a question or invite gets REAL answers to THAT ask, never a pivot to your own question — and contain zero claims about the user's own work, links or identity.`
         );
         const exR = extractNextMove(
@@ -662,7 +746,7 @@ export async function POST(req: NextRequest) {
       console.warn(
         `[rizz] meta-leak linter (${mode}): dropped ${parsed.metaDropped} line(s), parsed ${variants.length}/${count}`
       );
-      completion = await ask(
+      completion = await askWithRetry(
         `IMPORTANT correction: your previous output contained planning notes / reasoning / labels instead of ONLY ready-to-post replies. Regenerate ${countWord(count)}: final text only, each separated by a line containing only ---, no commentary, no 'Variant' headers, no notes about tone or strategy.`
       );
       const exR2 = extractNextMove(
@@ -695,15 +779,30 @@ export async function POST(req: NextRequest) {
         // v0.9.0 AUTONOMY PACK — smart next move (empty → field omitted)
         ...(nextMove ? { nextMove } : {}),
       },
-      { headers: CORS }
+      // v0.10.2: x-rizz-ai-retries = how many upstream-quota waits this
+      // request rode out invisibly (0 = quota was free the whole time);
+      // x-rizz-ai-model = which model slot actually served the answer.
+      {
+        headers: {
+          ...CORS,
+          "x-rizz-ai-retries": String(aiRetries),
+          ...(servedModel ? { "x-rizz-ai-model": servedModel } : {}),
+        },
+      }
     );
   } catch (err) {
-    // v0.9.0: upstream quota hits surface as 429 — tell the human the
-    // truth and how to proceed instead of a raw upstream message.
+    // v0.10.2: with model rotation the AI lane only fails after ~4 min of
+    // patient retries across every model slot — tell the human the truth.
     const message = err instanceof Error ? err.message : "Unknown error";
     const friendly = /429|too many requests|quota|rate\s*limit/i.test(message)
-      ? "Rate limited — the AI quota needs a minute to recover. Try again shortly (batch mode spaces items out)."
+      ? `AI quota stayed busy even after ~4 min of patient retries across ${RIZZ_MODEL_CHAIN.length} model slots — one more try usually lands, and batch mode spaces items out automatically.`
       : `Generation failed: ${message}`;
-    return NextResponse.json({ error: friendly }, { status: 500, headers: CORS });
+    return NextResponse.json(
+      { error: friendly },
+      {
+        status: 500,
+        headers: { ...CORS, "cache-control": "no-store" },
+      }
+    );
   }
 }
