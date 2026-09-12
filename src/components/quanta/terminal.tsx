@@ -7,27 +7,13 @@ import {
   useCallback, useEffect, useRef, useState, CSSProperties,
 } from "react";
 import { FS } from "./fs";
-import { CmdCtx, fmtUptime, swElapsed } from "./core";
+import { CmdCtx, CmdDef, fmtUptime, swElapsed } from "./core";
 import { runCommand, helpCard, completions, defaultCtx } from "./commands";
 import { fmtElapsed } from "./text-tools";
+import { THEMES, THEME_NAMES, Theme } from "./themes";
+import CommandPalette from "./palette";
 
-/* ---------- themes ---------- */
-
-interface Theme {
-  bg: string; panel: string; text: string; dim: string;
-  accent: string; err: string; ok: string; warn: string; sel: string;
-}
-
-const THEMES: Record<string, Theme> = {
-  /* "carbon" (was "tokyo") — renamed: QUANTA is a standalone terminal, no Tokyo branding */
-  carbon: { bg: "#0D0F12", panel: "#151A21", text: "#E6EAF2", dim: "#8E95A5", accent: "#FF5722", err: "#FF5370", ok: "#4AF6C3", warn: "#FFCB6B", sel: "#233043" },
-  matrix: { bg: "#030A03", panel: "#061206", text: "#B7FFC6", dim: "#3D7A4A", accent: "#00FF41", err: "#FF4B4B", ok: "#00FF41", warn: "#B0FF00", sel: "#0B2A0B" },
-  amber:  { bg: "#100A02", panel: "#1A1206", text: "#FFC88A", dim: "#8A6A3A", accent: "#FFAA00", err: "#FF6B4A", ok: "#FFD75E", warn: "#FFE08A", sel: "#2A1E08" },
-  ocean:  { bg: "#04121F", panel: "#082036", text: "#C8E6FF", dim: "#5B7E9E", accent: "#40C4FF", err: "#FF5370", ok: "#69F0AE", warn: "#FFD740", sel: "#0E2C47" },
-  light:  { bg: "#F4F1EA", panel: "#E9E4D8", text: "#26221B", dim: "#7A7264", accent: "#C64300", err: "#C62828", ok: "#1B7A4A", warn: "#A15C00", sel: "#DDD5C4" },
-};
-
-const THEME_NAMES = Object.keys(THEMES);
+/* themes live in ./themes.ts — token-based palettes shared across surfaces */
 
 /* ---------- line model ---------- */
 
@@ -89,6 +75,7 @@ export default function QuantaTerminal() {
   const [uptime, setUptime] = useState("0s");
   const [swLabel, setSwLabel] = useState("");
   const [ready, setReady] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const ctxRef = useRef<CmdCtx | null>(null);
   const histIdx = useRef(-1);
@@ -174,6 +161,18 @@ export default function QuantaTerminal() {
       }
     };
     pushBoot();
+  }, []);
+
+  /* ---------- command palette (Ctrl/Cmd+K) — works even when the input isn't focused ---------- */
+  useEffect(() => {
+    const onGlobalKey = (e: KeyboardEvent) => {
+      if ((e.key === "k" || e.key === "p") && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setPaletteOpen((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onGlobalKey);
+    return () => window.removeEventListener("keydown", onGlobalKey);
   }, []);
 
   /* ---------- persistence + clock tick (F33) ---------- */
@@ -266,6 +265,17 @@ export default function QuantaTerminal() {
       busyRef.current = false;
     }
   }, [persistFs, pushLines, removeSpinner]);
+
+  /* palette → terminal: run arg-less commands instantly, prefill usage for arg-taking ones */
+  const runFromPalette = useCallback((def: CmdDef) => {
+    setPaletteOpen(false);
+    inputRef.current?.focus();
+    if (def.usage && def.usage.trim() !== def.name) {
+      setInput(def.usage);
+    } else {
+      void execute(def.name);
+    }
+  }, [execute]);
 
   /* ---------- input handling ---------- */
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -383,12 +393,21 @@ export default function QuantaTerminal() {
         )}
       </div>
 
+        {/* command palette — fuzzy finder over the registry (Ctrl/Cmd+K) */}
+        {paletteOpen && (
+          <CommandPalette
+            onClose={() => setPaletteOpen(false)}
+            onRun={runFromPalette}
+            theme={theme}
+          />
+        )}
+
       {/* footer hints */}
       <div
         className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 text-[10px]"
         style={{ background: theme.panel, color: theme.dim, borderTop: `1px solid ${theme.sel}` }}
       >
-        <span>↑↓ history · TAB autocomplete · CTRL+L clear · {THEME_NAMES.join("/")}</span>
+        <span>↑↓ history · TAB autocomplete · CTRL+K palette · CTRL+L clear · {THEME_NAMES.join("/")}</span>
         <span style={{ color: theme.accent }}>theme: {themeName}</span>
       </div>
     </div>
