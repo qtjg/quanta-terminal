@@ -11,6 +11,7 @@ The terminal is keyboard-first. Current bindings, straight from the input handle
 | `Ctrl-L` | clear the screen (scrollback stays in memory) |
 | `Ctrl-C` | cancel the current line / interrupt the active command |
 | `Ctrl-K` / `Ctrl-P` | open the command palette — fuzzy finder over the command registry; `↑/↓` + `Enter` run (or prefill usage for arg-taking commands), `Esc` or repeat closes |
+| `Ctrl-R` | reverse-i-search over your command history — fuzzy filter, `Enter` re-runs the pick, `Tab`/`→` or click prefills the input, `Esc` or repeat closes |
 
 Notes:
 

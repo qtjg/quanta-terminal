@@ -4,6 +4,23 @@ All notable changes to QUANTA are documented here. Versions follow semver.
 
 ## [Unreleased]
 
+### Added — Terminal UX (wave 2)
+- **Ctrl-R reverse-i-search** — fuzzy search over the session command history: newest-first
+  dedup, subsequence scoring (reuses the palette scorer), `Enter` re-runs the pick bash-style,
+  `Tab`/`→` or click prefills the input, `Esc`/repeat closes; mutually exclusive with the
+  command palette (`Ctrl-K` closes history and vice versa) (#11 of the tools menu)
+- **Inline diff viewer** — `diff <a> <b>` now opens a side-by-side visual panel: aligned
+  row pairs (deletions/additions zipped context-style), per-side line numbers, themed
+  `+added`/`−removed` highlighting, single scroll container keeps panes synced; `--raw`
+  (or piping) keeps the classic plain-text output (#10 of the tools menu)
+- **Sandbox git + commit graph panel** — tiny honest VCS sim (`src/components/quanta/vcs.ts`):
+  `git init · commit -m "msg" · log · branch · checkout [-b] · status · graph · merge`,
+  where each commit snapshots the whole VFS (file count + FNV-1a sim-sha, first-parent
+  chains, branch pointers, localStorage-persisted); `git graph` opens an SVG panel with
+  per-branch lanes, parent→child edges, tip rings, head dot and branch labels (#9 of the
+  tools menu)
+- `docs/KEYBINDINGS.md` — Ctrl-R binding documented; footer hints updated
+
 ### Added — Terminal UX
 - **Command palette** (`Ctrl-K` / `Ctrl-P`) — fuzzy finder over the command registry:
   type-to-search across command names and descriptions (subsequence scoring with

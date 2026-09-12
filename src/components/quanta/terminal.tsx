@@ -10,8 +10,13 @@ import { FS } from "./fs";
 import { CmdCtx, CmdDef, fmtUptime, swElapsed } from "./core";
 import { runCommand, helpCard, completions, defaultCtx } from "./commands";
 import { fmtElapsed } from "./text-tools";
-import { THEMES, THEME_NAMES, Theme } from "./themes";
+import { THEMES, Theme } from "./themes";
 import CommandPalette from "./palette";
+import HistorySearch from "./histsearch";
+import DiffViewer from "./diffview";
+import GitGraphPanel from "./gitgraph";
+import { vcsDump, vcsLoad } from "./vcs";
+import { PanelRequest } from "./core";
 
 /* themes live in ./themes.ts — token-based palettes shared across surfaces */
 
@@ -24,6 +29,7 @@ const LS_FS = "quanta-fs";          /* was vt-quanta-fs */
 const LS_THEME = "quanta-theme";    /* was vt-quanta-theme */
 const LS_HIST = "quanta-history";   /* was vt-quanta-history */
 const LS_MODEL = "quanta-model";    /* selected AI provider/model ("provider/model" or "") */
+const LS_VCS = "quanta-vcs";        /* sandbox git state (commits, branches) */
 /* live spinner shown while slow (AI/network) commands run — module const: stable across renders */
 const SPIN_PREFIX = "· ai thinking";
 /* one-time migration map: legacy Visit Tokyo-prefixed keys → standalone quanta keys */
@@ -76,6 +82,8 @@ export default function QuantaTerminal() {
   const [swLabel, setSwLabel] = useState("");
   const [ready, setReady] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [histOpen, setHistOpen] = useState(false);
+  const [panel, setPanel] = useState<PanelRequest | null>(null);
 
   const ctxRef = useRef<CmdCtx | null>(null);
   const histIdx = useRef(-1);
@@ -130,6 +138,13 @@ export default function QuantaTerminal() {
     ctx.history = hist;
     /* OmniRoute: restore the smart-routing toggle (persisted by the omniroute cmd) */
     try { ctx.omni.enabled = (typeof localStorage !== "undefined" ? localStorage.getItem("quanta-omniroute") : null) === "on"; } catch {}
+    /* sandbox git (vcs.ts): restore commit history, wire panel + persistence hooks */
+    ctx.vcs = vcsLoad(lsGet(LS_VCS));
+    ctx.persist = () => {
+      try { lsSet(LS_FS, ctx.fs.dump()); } catch {}
+      try { if (ctx.vcs) lsSet(LS_VCS, vcsDump(ctx.vcs)); } catch {}
+    };
+    ctx.openPanel = (p) => setPanel(p);
     ctx.bootInfo = {
       platform: "web (browser sandbox)",
       ua: navigator.userAgent,
@@ -163,12 +178,18 @@ export default function QuantaTerminal() {
     pushBoot();
   }, []);
 
-  /* ---------- command palette (Ctrl/Cmd+K) — works even when the input isn't focused ---------- */
+  /* ---------- global shortcuts — palette (Ctrl/Cmd+K/P) + history search (Ctrl/Cmd+R) ----------
+     work even when the input isn't focused; mutually exclusive overlays */
   useEffect(() => {
     const onGlobalKey = (e: KeyboardEvent) => {
       if ((e.key === "k" || e.key === "p") && (e.ctrlKey || e.metaKey)) {
         e.preventDefault();
+        setHistOpen(false);
         setPaletteOpen((v) => !v);
+      } else if (e.key === "r" && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        setPaletteOpen(false);
+        setHistOpen((v) => !v);
       }
     };
     window.addEventListener("keydown", onGlobalKey);
@@ -204,6 +225,7 @@ export default function QuantaTerminal() {
     const ctx = ctxRef.current;
     if (!ctx) return;
     try { lsSet(LS_FS, ctx.fs.dump()); } catch {}
+    try { if (ctx.vcs) lsSet(LS_VCS, vcsDump(ctx.vcs)); } catch {}
   }, []);
 
   const pushLines = useCallback((newLines: Line[]) => {
@@ -276,6 +298,19 @@ export default function QuantaTerminal() {
       void execute(def.name);
     }
   }, [execute]);
+
+  /* history search (Ctrl+R): run the picked command bash-style, or prefill via Tab/click */
+  const runFromHistory = useCallback((cmd: string) => {
+    setHistOpen(false);
+    inputRef.current?.focus();
+    void execute(cmd);
+  }, [execute]);
+
+  const prefillFromHistory = useCallback((cmd: string) => {
+    setHistOpen(false);
+    setInput(cmd);
+    inputRef.current?.focus();
+  }, []);
 
   /* ---------- input handling ---------- */
   const onKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -402,12 +437,31 @@ export default function QuantaTerminal() {
           />
         )}
 
+        {/* history search — reverse-i-search over past commands (Ctrl/Cmd+R) */}
+        {histOpen && (
+          <HistorySearch
+            history={ctxRef.current?.history ?? []}
+            onClose={() => setHistOpen(false)}
+            onRun={runFromHistory}
+            onPrefill={prefillFromHistory}
+            theme={theme}
+          />
+        )}
+
+        {/* visual panels — opened by commands via ctx.openPanel (diff viewer, git graph) */}
+        {panel?.type === "diff" && (
+          <DiffViewer data={panel} onClose={() => setPanel(null)} theme={theme} />
+        )}
+        {panel?.type === "gitgraph" && (
+          <GitGraphPanel vcs={panel.vcs} onClose={() => setPanel(null)} theme={theme} />
+        )}
+
       {/* footer hints */}
       <div
         className="flex flex-wrap items-center justify-between gap-2 px-3 py-1.5 text-[10px]"
         style={{ background: theme.panel, color: theme.dim, borderTop: `1px solid ${theme.sel}` }}
       >
-        <span>↑↓ history · TAB autocomplete · CTRL+K palette · CTRL+L clear · {THEME_NAMES.join("/")}</span>
+        <span>↑↓ history · CTRL+R search · TAB autocomplete · CTRL+K palette · CTRL+L clear</span>
         <span style={{ color: theme.accent }}>theme: {themeName}</span>
       </div>
     </div>

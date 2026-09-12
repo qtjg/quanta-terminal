@@ -14,8 +14,9 @@ interface Scored {
 }
 
 /* fuzzy score: subsequence match, bonuses for word starts / prefix / adjacency.
-   Returns -1 when `q` is not a subsequence of `s`. Case-insensitive. */
-function fuzzyScore(q: string, s: string): number {
+   Returns -1 when `q` is not a subsequence of `s`. Case-insensitive.
+   Exported — the history search (Ctrl+R) reuses the same scorer. */
+export function fuzzyScore(q: string, s: string): number {
   if (!q) return 1;
   const ql = q.toLowerCase();
   const sl = s.toLowerCase();
