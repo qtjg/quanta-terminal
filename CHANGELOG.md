@@ -4,6 +4,16 @@ All notable changes to QUANTA are documented here. Versions follow semver.
 
 ## [Unreleased]
 
+### Added — Terminal UX
+- **Command palette** (`Ctrl-K` / `Ctrl-P`) — fuzzy finder over the command registry:
+  type-to-search across command names and descriptions (subsequence scoring with
+  word-start/prefix bonuses), `↑/↓` navigate, `Enter` runs arg-less commands instantly
+  and prefills the usage line for arg-taking ones, `Esc`/repeat closes. Zero new
+  dependencies; theme-aware via the shared token palettes (`#12`)
+- `src/components/quanta/themes.ts` — theme tokens extracted into a shared module
+  (palette + terminal consume the same 5 palettes; groundwork for theme import/export `#15`)
+- `docs/KEYBINDINGS.md` — palette bindings documented; footer hints updated
+
 ### Added — Ops tooling
 - `scripts/healthcheck.sh` — production-style local probe (`OK 200` / `DOWN <code>`) with clean exit codes; `npm run healthcheck`
 - `scripts/contrib-stats.sh` — per-author commit stats from the GitHub API (login + email breakdown, graph-rules reference); `npm run contrib-stats`

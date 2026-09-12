@@ -10,6 +10,7 @@ The terminal is keyboard-first. Current bindings, straight from the input handle
 | `Tab` | complete the current token against the command registry and VFS paths |
 | `Ctrl-L` | clear the screen (scrollback stays in memory) |
 | `Ctrl-C` | cancel the current line / interrupt the active command |
+| `Ctrl-K` / `Ctrl-P` | open the command palette — fuzzy finder over the command registry; `↑/↓` + `Enter` run (or prefill usage for arg-taking commands), `Esc` or repeat closes |
 
 Notes:
 
@@ -20,5 +21,5 @@ Notes:
 - Mobile: soft keyboards vary — the hidden input keeps focus and the history/completion
   gestures above work through the same handler.
 
-Planned additions live in [ROADMAP.md](../ROADMAP.md) (command palette will register
-`Ctrl-P`); this file is updated when new bindings land.
+Planned additions live in [ROADMAP.md](../ROADMAP.md); this file is updated when new
+bindings land.
