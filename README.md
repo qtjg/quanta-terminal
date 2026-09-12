@@ -14,6 +14,10 @@
 [![License](https://img.shields.io/badge/license-MIT-f59e0b?style=for-the-badge)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-8b5cf6?style=for-the-badge)](#-contributing)
 
+<img src="docs/assets/quanta-3d-hero.svg" alt="QUANTA — isometric 3D render: floating glass terminal above glowing engine, VFS and AI layers with animated data beams" width="880" />
+
+*▲ Isometric 3D render of the stack — floating terminal, glowing layers, live data beams. (animated)*
+
 <img src="docs/assets/terminal-hero.png" alt="QUANTA terminal — live AI engine test" width="920" />
 
 *Real round-trip LLM calls, real answers, honest telemetry — no mocks.*
@@ -63,6 +67,20 @@ The root route **is** the terminal. One product, zero distraction.
 │  │ 36                                                       │  │
 │  └──────────────────────────────────────────────────────────┘  │
 └────────────────────────────────────────────────────────────────┘
+```
+
+And here is the same machine as an **isometric 3D stack** — the terminal you touch on top, everything that makes it real underneath:
+
+```text
+              ╱▔▔▔▔▔▔▔▔▔▔▔▔▔▔▔╲
+             ╱  ⬛ QUANTA TTY   ╲        ← the terminal you see
+            ╱▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁╲
+               ╱▔▔▔▔▔▔▔▔▔▔▔▔▔╲
+              ╱  ENGINE · 119  ╲       ← the command engine
+             ╱▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁╲
+                ╱▔▔▔▔▔▔▔▔▔▔▔╲
+               ╱  VFS · AI ⚡  ╲      ← storage + intelligence
+              ╱▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁╲
 ```
 
 ## 🧩 Feature Matrix
@@ -293,6 +311,16 @@ No fake latency theatre. `curl`, `ipinfo` and `weather` hit the real internet th
 </div>
 
 ## 🏗 Architecture
+
+<div align="center">
+
+<img src="docs/assets/quanta-3d-architecture.svg" alt="Isometric 3D layer stack: browser terminal plane, Next.js API plane and provider plane, connected by animated data beams" width="880" />
+
+*▲ The stack in isometric 3D — requests fall through the layers like light through glass. (animated)*
+
+</div>
+
+**Data-flow detail:**
 
 ```mermaid
 flowchart TB

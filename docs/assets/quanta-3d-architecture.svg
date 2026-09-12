@@ -1,0 +1,177 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 640" font-family="'Courier New', Courier, monospace">
+  <defs>
+    <linearGradient id="abg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#04060c"/>
+      <stop offset="1" stop-color="#0a1226"/>
+    </linearGradient>
+    <linearGradient id="pcyan" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c2a3d"/>
+      <stop offset="1" stop-color="#081a29"/>
+    </linearGradient>
+    <linearGradient id="pgreen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0c2f22"/>
+      <stop offset="1" stop-color="#081c15"/>
+    </linearGradient>
+    <linearGradient id="ppurple" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#241640"/>
+      <stop offset="1" stop-color="#150d28"/>
+    </linearGradient>
+    <linearGradient id="flow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#22d3ee"/>
+      <stop offset="0.5" stop-color="#4ade80"/>
+      <stop offset="1" stop-color="#a78bfa"/>
+    </linearGradient>
+    <filter id="aglow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <rect width="960" height="640" rx="18" fill="url(#abg)"/>
+  <text x="936" y="600" text-anchor="end" font-size="12" fill="#475569" letter-spacing="2">▲ QUANTA · ISOMETRIC LAYER STACK</text>
+
+  <!-- ═══ PLANE 1 (bottom): PROVIDERS ═══ -->
+  <g>
+    <polygon points="220,500 480,610 740,500 740,518 480,628 220,518" fill="#150d28"/>
+    <polygon points="220,500 480,610 480,628 220,518" fill="#0f0a1e"/>
+    <polygon points="740,500 480,610 480,628 740,518" fill="#0a0716"/>
+    <polygon points="480,390 740,500 480,610 220,500" fill="url(#ppurple)" stroke="#a78bfa" stroke-opacity="0.8" stroke-width="2" filter="url(#aglow)"/>
+    <text x="305" y="472" font-size="16" fill="#c4b5fd" letter-spacing="2" filter="url(#aglow)">PROVIDERS</text>
+    <text x="640" y="462" font-size="11" fill="#7c6aae" letter-spacing="1">free-model catalog · fallback chain</text>
+    <!-- provider cubes -->
+    <g>
+      <polygon points="340,478 370,491 340,504 310,491" fill="#3b2a63" stroke="#a78bfa" stroke-width="1"/>
+      <polygon points="310,491 340,504 340,516 310,503" fill="#241640"/>
+      <polygon points="370,491 340,504 340,516 370,503" fill="#1a1030"/>
+      <text x="340" y="530" text-anchor="middle" font-size="11" fill="#c4b5fd">openrouter</text>
+      <animate attributeName="opacity" values="1;0.75;1" dur="3s" repeatCount="indefinite"/>
+    </g>
+    <g>
+      <polygon points="445,492 475,505 445,518 415,505" fill="#3b2a63" stroke="#a78bfa" stroke-width="1"/>
+      <polygon points="415,505 445,518 445,530 415,517" fill="#241640"/>
+      <polygon points="475,505 445,518 445,530 475,517" fill="#1a1030"/>
+      <text x="445" y="544" text-anchor="middle" font-size="11" fill="#c4b5fd">groq</text>
+    </g>
+    <g>
+      <polygon points="552,478 582,491 552,504 522,491" fill="#3b2a63" stroke="#a78bfa" stroke-width="1"/>
+      <polygon points="522,491 552,504 552,516 522,503" fill="#241640"/>
+      <polygon points="582,491 552,504 552,516 582,503" fill="#1a1030"/>
+      <text x="552" y="530" text-anchor="middle" font-size="11" fill="#c4b5fd">gemini</text>
+    </g>
+    <g>
+      <polygon points="648,500 678,513 648,526 618,513" fill="#3b2a63" stroke="#a78bfa" stroke-width="1"/>
+      <polygon points="618,513 648,526 648,538 618,525" fill="#241640"/>
+      <polygon points="678,513 648,526 648,538 678,525" fill="#1a1030"/>
+      <text x="648" y="552" text-anchor="middle" font-size="11" fill="#c4b5fd">cerebras</text>
+    </g>
+    <g>
+      <polygon points="500,556 522,565 500,574 478,565" fill="#173a4a" stroke="#38bdf8" stroke-width="1"/>
+      <ellipse cx="500" cy="565" rx="22" ry="9" fill="none" stroke="#38bdf8" stroke-opacity="0.7"/>
+      <text x="500" y="592" text-anchor="middle" font-size="11" fill="#7dd3fc">wttr.in</text>
+    </g>
+  </g>
+
+  <!-- ═══ PLANE 2 (middle): NEXT.JS SERVER ═══ -->
+  <g>
+    <polygon points="220,320 480,430 740,320 740,338 480,448 220,338" fill="#081c15"/>
+    <polygon points="220,320 480,430 480,448 220,338" fill="#061510"/>
+    <polygon points="740,320 480,430 480,448 740,338" fill="#040f0b"/>
+    <polygon points="480,210 740,320 480,430 220,320" fill="url(#pgreen)" stroke="#4ade80" stroke-opacity="0.8" stroke-width="2" filter="url(#aglow)"/>
+    <text x="295" y="292" font-size="16" fill="#86efac" letter-spacing="2" filter="url(#aglow)">NEXT.JS SERVER</text>
+    <text x="618" y="368" font-size="11" fill="#4d8a68" letter-spacing="1">SSRF-guarded proxy routes</text>
+    <!-- api route blocks -->
+    <g>
+      <polygon points="372,282 402,295 372,308 342,295" fill="#123826" stroke="#4ade80" stroke-width="1"/>
+      <polygon points="342,295 372,308 372,320 342,307" fill="#0c2a1b"/>
+      <polygon points="402,295 372,308 372,320 402,307" fill="#08200f"/>
+      <text x="372" y="334" text-anchor="middle" font-size="11" fill="#86efac">fetch</text>
+    </g>
+    <g>
+      <polygon points="588,282 618,295 588,308 558,295" fill="#123826" stroke="#4ade80" stroke-width="1"/>
+      <polygon points="558,295 588,308 588,320 558,307" fill="#0c2a1b"/>
+      <polygon points="618,295 588,308 588,320 618,307" fill="#08200f"/>
+      <text x="588" y="334" text-anchor="middle" font-size="11" fill="#86efac">chat</text>
+    </g>
+    <g>
+      <polygon points="465,348 495,361 465,374 435,361" fill="#123826" stroke="#4ade80" stroke-width="1"/>
+      <polygon points="435,361 465,374 465,386 435,373" fill="#0c2a1b"/>
+      <polygon points="495,361 465,374 465,386 495,373" fill="#08200f"/>
+      <text x="465" y="400" text-anchor="middle" font-size="11" fill="#86efac">models</text>
+    </g>
+    <g>
+      <polygon points="600,352 630,365 600,378 570,365" fill="#123826" stroke="#4ade80" stroke-width="1"/>
+      <polygon points="570,365 600,378 600,390 570,377" fill="#0c2a1b"/>
+      <polygon points="630,365 600,378 600,390 630,377" fill="#08200f"/>
+      <text x="600" y="404" text-anchor="middle" font-size="11" fill="#86efac">recon</text>
+    </g>
+  </g>
+
+  <!-- ═══ PLANE 3 (top): BROWSER / TERMINAL ═══ -->
+  <g>
+    <polygon points="220,140 480,250 740,140 740,158 480,268 220,158" fill="#081a29"/>
+    <polygon points="220,140 480,250 480,268 220,158" fill="#061420"/>
+    <polygon points="740,140 480,250 480,268 740,158" fill="#040e16"/>
+    <polygon points="480,30 740,140 480,250 220,140" fill="url(#pcyan)" stroke="#22d3ee" stroke-opacity="0.85" stroke-width="2" filter="url(#aglow)"/>
+    <text x="288" y="112" font-size="16" fill="#67e8f9" letter-spacing="2" filter="url(#aglow)">BROWSER · QUANTA TERMINAL</text>
+    <text x="600" y="188" font-size="11" fill="#3e7d96" letter-spacing="1">React + TTY engine · pipes · aliases</text>
+    <!-- terminal + cmd blocks -->
+    <g>
+      <polygon points="386,150 416,163 386,176 356,163" fill="#0e3247" stroke="#22d3ee" stroke-width="1"/>
+      <polygon points="356,163 386,176 386,188 356,175" fill="#092434"/>
+      <polygon points="416,163 386,176 386,188 416,175" fill="#061a26"/>
+      <text x="386" y="202" text-anchor="middle" font-size="11" fill="#67e8f9">tty engine</text>
+    </g>
+    <g>
+      <polygon points="560,150 590,163 560,176 530,163" fill="#0e3247" stroke="#22d3ee" stroke-width="1"/>
+      <polygon points="530,163 560,176 560,188 530,175" fill="#092434"/>
+      <polygon points="590,163 560,176 560,188 590,175" fill="#061a26"/>
+      <text x="560" y="202" text-anchor="middle" font-size="11" fill="#67e8f9">119 cmds</text>
+    </g>
+    <g>
+      <polygon points="470,168 500,181 470,194 440,181" fill="#0e3247" stroke="#22d3ee" stroke-width="1"/>
+      <polygon points="440,181 470,194 470,206 440,193" fill="#092434"/>
+      <polygon points="500,181 470,194 470,206 500,193" fill="#061a26"/>
+      <text x="470" y="220" text-anchor="middle" font-size="11" fill="#67e8f9">pipes · ai</text>
+    </g>
+    <!-- localStorage cylinder -->
+    <g>
+      <rect x="612" y="188" width="44" height="26" fill="#0b2b40" stroke="#38bdf8"/>
+      <ellipse cx="634" cy="188" rx="22" ry="8" fill="#123c5c" stroke="#38bdf8"/>
+      <ellipse cx="634" cy="214" rx="22" ry="8" fill="none" stroke="#38bdf8" stroke-opacity="0.7"/>
+      <text x="634" y="240" text-anchor="middle" font-size="11" fill="#7dd3fc">VFS·ls</text>
+    </g>
+  </g>
+
+  <!-- ═══ animated data beams through the stack ═══ -->
+  <g>
+    <line x1="480" y1="60" x2="480" y2="600" stroke="url(#flow)" stroke-width="3" stroke-dasharray="8 10" opacity="0.55">
+      <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1.6s" repeatCount="indefinite"/>
+    </line>
+    <line x1="380" y1="120" x2="380" y2="560" stroke="url(#flow)" stroke-width="2" stroke-dasharray="6 12" opacity="0.35">
+      <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="2.2s" repeatCount="indefinite"/>
+    </line>
+    <line x1="585" y1="120" x2="585" y2="560" stroke="url(#flow)" stroke-width="2" stroke-dasharray="6 12" opacity="0.35">
+      <animate attributeName="stroke-dashoffset" from="0" to="-36" dur="1.9s" repeatCount="indefinite"/>
+    </line>
+    <!-- traveling pulses -->
+    <circle r="5" fill="#22d3ee" filter="url(#aglow)">
+      <animateMotion path="M480,55 L480,605" dur="3s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.9;1" dur="3s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="4" fill="#4ade80" filter="url(#aglow)">
+      <animateMotion path="M380,115 L380,565" dur="3.6s" begin="1.2s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.9;1" dur="3.6s" begin="1.2s" repeatCount="indefinite"/>
+    </circle>
+    <circle r="4" fill="#a78bfa" filter="url(#aglow)">
+      <animateMotion path="M585,115 L585,565" dur="3.3s" begin="0.6s" repeatCount="indefinite"/>
+      <animate attributeName="opacity" values="0;1;1;0" keyTimes="0;0.1;0.9;1" dur="3.3s" begin="0.6s" repeatCount="indefinite"/>
+    </circle>
+  </g>
+
+  <!-- flow annotations -->
+  <g font-size="11" fill="#94a3b8">
+    <text x="492" y="286">prompts ↓</text>
+    <text x="492" y="466">routed calls ↓</text>
+    <text x="612" y="86" fill="#38bdf8">real fetches · honest telemetry</text>
+  </g>
+</svg>
