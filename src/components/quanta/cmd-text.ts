@@ -114,17 +114,25 @@ export const TEXT_COMMANDS: CmdDef[] = [
     },
   },
   {
-    name: "diff", cat: "text", desc: "line diff of two files (LCS)", usage: "diff <fileA> <fileB>",
+    name: "diff", cat: "text", desc: "side-by-side diff of two files (LCS)", usage: "diff <fileA> <fileB>  ·  --raw for plain text",
     run: (ctx) => {
-      if (ctx.args.length < 2) return err("usage: diff <fileA> <fileB>");
-      const nodes = ctx.args.slice(0, 2).map((a) => ctx.fs.get(absPath(ctx, a)));
-      if (!nodes[0] || !nodes[1]) return err(`diff: ${!nodes[0] ? ctx.args[0] : ctx.args[1]}: no such file`);
+      const { pos, flags } = parseFlags(ctx.args);
+      if (pos.length < 2) return err("usage: diff <fileA> <fileB>  (--raw for plain text)");
+      const [aName, bName] = pos;
+      const nodes = [aName, bName].map((a) => ctx.fs.get(absPath(ctx, a)));
+      if (!nodes[0] || !nodes[1]) return err(`diff: ${!nodes[0] ? aName : bName}: no such file`);
       if (!isFile(nodes[0]) || !isFile(nodes[1])) return err("diff: both operands must be files");
       const rows = diffText(nodes[0].content, nodes[1].content);
-      const out = [ `--- ${ctx.args[0]}`, `+++ ${ctx.args[1]}`, `stat ${diffStat(rows)}`, "" ];
+      const stat = diffStat(rows);
+      /* visual side-by-side viewer when an interactive panel surface exists */
+      if (ctx.openPanel && !hasStdin(ctx) && !flags.has("raw")) {
+        ctx.openPanel({ type: "diff", aName, bName, rows, stat });
+        return [`→ diff opened in viewer — ${aName} → ${bName} ${stat} (esc to close · --raw for text)`];
+      }
+      const out = [ `--- ${aName}`, `+++ ${bName}`, `stat ${stat}`, "" ];
       for (const r of rows.slice(0, 120)) out.push(`${r.op} ${r.line}`);
       if (rows.length > 120) out.push(`… ${rows.length - 120} more rows`);
-      if (diffStat(rows) === "+0 -0 =" + rows.filter((r) => r.op === "=").length) out.push("(files identical)");
+      if (rows.length && rows.every((r) => r.op === "=")) out.push("(files identical)");
       return out;
     },
   },
