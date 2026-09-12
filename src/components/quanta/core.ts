@@ -1,6 +1,7 @@
 /* QUANTA core — command types, context, shared helpers */
 
 import { FS } from "./fs";
+import type { Vcs } from "./vcs";
 
 export interface ProcessInfo {
   pid: number;
@@ -48,7 +49,18 @@ export interface CmdCtx {
   clearRequested: boolean;     // set by clear cmd; UI consumes
   exitRequested: boolean;
   bootInfo: { platform: string; ua: string; cores: number; screen: string; lang: string; tz: string; memGB: number | null };
+  /* panel surfaces (optional — set by terminal.tsx): commands may open visual panels */
+  openPanel?: (p: PanelRequest) => void;
+  /* persistence hook (optional — set by terminal.tsx): sandbox stores save through it */
+  persist?: () => void;
+  /* sandbox version-control state (./vcs.ts) — `git` commands read/write it */
+  vcs?: Vcs | null;
 }
+
+/* request to open a visual panel surface (rendered by terminal.tsx) */
+export type PanelRequest =
+  | { type: "diff"; aName: string; bName: string; rows: Array<{ op: "=" | "-" | "+"; line: string }>; stat: string }
+  | { type: "gitgraph"; vcs: Vcs };
 
 export interface CmdDef {
   name: string;
