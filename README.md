@@ -2,6 +2,24 @@
 
 # ⬛ QUANTA
 
+<!-- ⬡ 3D-UPGRADE v1 by Mayank Bhaskar -->
+<div align="center">
+
+![quanta-terminal — 3D](assets/3d-hero.svg)
+
+**made by [Mayank Bhaskar](https://github.com/qtjg)** · ![lang](https://img.shields.io/badge/lang-TypeScript-f59e0b?style=flat&labelColor=0d1117) ![stars](https://img.shields.io/github/stars/qtjg/quanta-terminal?style=flat&labelColor=0d1117&color=f59e0b)
+
+### 🧊 3D View
+
+![quanta-terminal — isometric stack](assets/3d-stack.svg)
+
+*Floating isometric render — layers hover, data particles stream, shine sweeps.*
+
+</div>
+
+---
+🩺 **New tool — `repo-pulse`**: instant git pulse (28-day heat bars, hot files, contributors). Run: `node tools/repo-pulse.mjs`
+
 ### *The AI-Native Linux Terminal — in your browser*
 
 **119 real commands · multi-provider AI routing · security toolkit · developer tools · persistent virtual filesystem**
