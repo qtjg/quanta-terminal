@@ -95,3 +95,8 @@ server.log
 /upload/
 /agent-ctx/
 gitmancer/
+
+# Coverage
+coverage/
+
+.eslintcache
